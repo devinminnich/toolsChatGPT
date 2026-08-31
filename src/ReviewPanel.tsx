@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import QuoteReview from './QuoteReview';
 import { diffDesigns } from './domain/designDiff';
 import { estimateScope, type EstimateMode, type QualityTier } from './domain/estimating';
 import { calculateMaterials } from './domain/materials';
@@ -128,13 +129,16 @@ export default function ReviewPanel() {
                 </>}
               </section>
 
-              {rfq && <section className="review-card rfq-card">
-                <div className="rfq-heading"><div><h3>Contractor RFQ preview</h3><p className="muted">Built from the current proposed design and non-ignored scope.</p></div><span>{rfq.scope.length} scope items</span></div>
-                <p>{rfq.overview}</p>
-                <button className="export-button" type="button" onClick={() => downloadPdf(`${rfq.projectName} RFQ`, buildRfqPdfSections(rfq))}>Download RFQ PDF</button>
-                <details><summary>Requested pricing breakdown</summary><ul>{rfq.pricingRequest.map((line) => <li key={line}>{line}</li>)}</ul></details>
-                <details><summary>Contractor questions</summary><ul>{rfq.contractorQuestions.map((line) => <li key={line}>{line}</li>)}</ul></details>
-              </section>}
+              {rfq && <>
+                <section className="review-card rfq-card">
+                  <div className="rfq-heading"><div><h3>Contractor RFQ preview</h3><p className="muted">Built from the current proposed design and non-ignored scope.</p></div><span>{rfq.scope.length} scope items</span></div>
+                  <p>{rfq.overview}</p>
+                  <button className="export-button" type="button" onClick={() => downloadPdf(`${rfq.projectName} RFQ`, buildRfqPdfSections(rfq))}>Download RFQ PDF</button>
+                  <details><summary>Requested pricing breakdown</summary><ul>{rfq.pricingRequest.map((line) => <li key={line}>{line}</li>)}</ul></details>
+                  <details><summary>Contractor questions</summary><ul>{rfq.contractorQuestions.map((line) => <li key={line}>{line}</li>)}</ul></details>
+                </section>
+                <QuoteReview rfq={rfq} />
+              </>}
             </div>
           </>
         )}
