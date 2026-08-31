@@ -1,4 +1,4 @@
-const CACHE_NAME = 'renovation-planner-v1';
+const CACHE_NAME = 'renovation-planner-v2';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -13,15 +13,36 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+async function networkAndCache(request) {
+  const response = await fetch(request);
+  if (response.ok) {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
+
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const request = event.request;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      networkAndCache(request).catch(async () => (
+        (await caches.match(request)) || (await caches.match('/index.html'))
+      )),
+    );
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html'))),
+    networkAndCache(request).catch(async () => {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+      return Response.error();
+    }),
   );
 });
