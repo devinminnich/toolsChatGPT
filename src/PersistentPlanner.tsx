@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createId, type FixtureInstance, type Point } from './domain/project';
+import { pinchViewport, type ScreenPoint } from './domain/viewportGestures';
 import { useWorkspace } from './hooks/useWorkspace';
 import { DisplayUnit, formatMeasurement, inchesToMm, parseMeasurement, valueForInput } from './lib/units';
 
@@ -15,6 +16,12 @@ type PanState = {
   startClientX: number;
   startClientY: number;
   startView: ViewBox;
+};
+
+type PinchState = {
+  startView: ViewBox;
+  pointerIds: [number, number];
+  startPoints: [ScreenPoint, ScreenPoint];
 };
 
 const INITIAL_WIDTH = inchesToMm(172);
@@ -95,6 +102,8 @@ export default function PersistentPlanner() {
   const [depthInput, setDepthInput] = useState(valueForInput(INITIAL_DEPTH, 'ft-in'));
   const svgRef = useRef<SVGSVGElement | null>(null);
   const panRef = useRef<PanState | null>(null);
+  const touchPointsRef = useRef<Map<number, ScreenPoint>>(new Map());
+  const pinchRef = useRef<PinchState | null>(null);
   const loadedDesignRef = useRef<string | null>(null);
 
   const activeDesign = workspace.activeDesign;
@@ -137,6 +146,11 @@ export default function PersistentPlanner() {
     if (!matrix) return null;
     const transformed = point.matrixTransform(matrix.inverse());
     return { x: transformed.x, y: transformed.y };
+  }
+
+  function relativeScreenPoint(event: React.PointerEvent<SVGSVGElement>): ScreenPoint {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
 
   function fitToView(points = vertices) {
@@ -220,6 +234,21 @@ export default function PersistentPlanner() {
   }
 
   function canvasPointerDown(event: React.PointerEvent<SVGSVGElement>) {
+    if (event.pointerType === 'touch') {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      touchPointsRef.current.set(event.pointerId, relativeScreenPoint(event));
+      if (touchPointsRef.current.size >= 2) {
+        const entries = Array.from(touchPointsRef.current.entries()).slice(0, 2);
+        pinchRef.current = {
+          startView: view,
+          pointerIds: [entries[0][0], entries[1][0]],
+          startPoints: [entries[0][1], entries[1][1]],
+        };
+        panRef.current = null;
+        return;
+      }
+    }
+
     if (mode === 'pan' || event.button === 1) {
       event.currentTarget.setPointerCapture(event.pointerId);
       panRef.current = { pointerId: event.pointerId, startClientX: event.clientX, startClientY: event.clientY, startView: view };
@@ -250,6 +279,20 @@ export default function PersistentPlanner() {
   }
 
   function canvasPointerMove(event: React.PointerEvent<SVGSVGElement>) {
+    if (event.pointerType === 'touch' && touchPointsRef.current.has(event.pointerId)) {
+      touchPointsRef.current.set(event.pointerId, relativeScreenPoint(event));
+      const pinch = pinchRef.current;
+      if (pinch) {
+        const currentA = touchPointsRef.current.get(pinch.pointerIds[0]);
+        const currentB = touchPointsRef.current.get(pinch.pointerIds[1]);
+        if (currentA && currentB) {
+          const rect = event.currentTarget.getBoundingClientRect();
+          setView(pinchViewport(pinch.startView, pinch.startPoints[0], pinch.startPoints[1], currentA, currentB, { width: rect.width, height: rect.height }));
+        }
+        return;
+      }
+    }
+
     const pan = panRef.current;
     if (!pan || pan.pointerId !== event.pointerId) return;
     const rect = event.currentTarget.getBoundingClientRect();
@@ -259,6 +302,10 @@ export default function PersistentPlanner() {
   }
 
   function canvasPointerUp(event: React.PointerEvent<SVGSVGElement>) {
+    if (event.pointerType === 'touch') {
+      touchPointsRef.current.delete(event.pointerId);
+      if (pinchRef.current?.pointerIds.includes(event.pointerId)) pinchRef.current = null;
+    }
     if (panRef.current?.pointerId === event.pointerId) panRef.current = null;
   }
 
