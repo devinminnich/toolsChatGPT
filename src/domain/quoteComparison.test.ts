@@ -15,10 +15,8 @@ describe('compareQuoteToRfq', () => {
   it('matches included quote scope and flags missing requested work', () => {
     const result = compareQuoteToRfq(rfq, {
       id: 'q', contractorName: 'Example Contractor', total: 12000,
-      scope: [
-        { title: 'Relocate toilet and plumbing', status: 'included' },
-      ],
-      exclusions: [], notes: [],
+      scope: [{ title: 'Relocate toilet and plumbing', status: 'included' }],
+      exclusions: [], notes: [], importedAt: '2026-08-31T00:00:00Z',
     });
 
     expect(result.lines.find((line) => line.rfqScopeId === 'toilet')?.status).toBe('included');
@@ -28,7 +26,7 @@ describe('compareQuoteToRfq', () => {
   it('recognizes explicit exclusions', () => {
     const result = compareQuoteToRfq(rfq, {
       id: 'q', contractorName: 'Example Contractor',
-      scope: [], exclusions: ['Floor tile installation is excluded'], notes: [],
+      scope: [], exclusions: ['Floor tile installation is excluded'], notes: [], importedAt: '2026-08-31T00:00:00Z',
     });
     expect(result.lines.find((line) => line.rfqScopeId === 'tile')?.status).toBe('excluded');
   });
