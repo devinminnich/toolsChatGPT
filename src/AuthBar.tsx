@@ -51,7 +51,7 @@ export default function AuthBar() {
   }
 
   if (!online) {
-    return <div className="auth-bar auth-local"><span>Offline</span><span>Changes are stored on this device and will sync after reconnecting.</span></div>;
+    return <div className="auth-bar auth-local auth-offline"><span>Offline</span><span>Changes are stored on this device and will sync after reconnecting.</span></div>;
   }
 
   if (!isSupabaseConfigured) {
