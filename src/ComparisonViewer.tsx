@@ -21,30 +21,37 @@ function DesignLayer({ design, className }: { design: Design; className: string 
 }
 
 export default function ComparisonViewer({ existing, proposed }: { existing: Design; proposed: Design }) {
-  const [split, setSplit] = useState(50);
+  const [showProposal, setShowProposal] = useState(false);
   const bounds = useMemo(() => combinedDesignBounds(existing, proposed), [existing, proposed]);
-  const width = bounds.maxX - bounds.minX;
-  const height = bounds.maxY - bounds.minY;
-  const clipWidth = width * split / 100;
-  const splitX = bounds.minX + clipWidth;
+  const activeDesign = showProposal ? proposed : existing;
+  const activeClass = showProposal ? 'proposed-layer' : 'existing-layer';
+  const activeLabel = showProposal ? 'Proposal' : 'Actual';
 
   return <section className="review-card comparison-viewer-card">
     <div className="comparison-viewer-heading">
-      <div><h3>Visual comparison</h3><p className="muted">Drag the slider to reveal Existing versus Proposed.</p></div>
-      <div className="comparison-legend"><span className="legend-existing">Existing</span><span className="legend-proposed">Proposed</span></div>
+      <div><h3>Visual comparison</h3><p className="muted">Switch between the actual layout and the proposal.</p></div>
+      <span className={`comparison-state ${showProposal ? 'is-proposal' : 'is-actual'}`}>Showing {activeLabel}</span>
     </div>
+
+    <div className="comparison-switch-row">
+      <span className={!showProposal ? 'active' : ''}>Actual</span>
+      <button
+        type="button"
+        className={`comparison-switch ${showProposal ? 'on' : ''}`}
+        role="switch"
+        aria-checked={showProposal}
+        aria-label="Switch between Actual and Proposal"
+        onClick={() => setShowProposal((value) => !value)}
+      >
+        <span className="comparison-switch-thumb" />
+      </button>
+      <span className={showProposal ? 'active' : ''}>Proposal</span>
+    </div>
+
     <div className="comparison-canvas-wrap">
-      <svg className="comparison-canvas" viewBox={boundsViewBox(bounds)} role="img" aria-label="Existing and proposed design comparison">
-        <defs><clipPath id="proposedClip"><rect x={bounds.minX} y={bounds.minY} width={clipWidth} height={height} /></clipPath></defs>
-        <DesignLayer design={existing} className="existing-layer" />
-        <g clipPath="url(#proposedClip)"><DesignLayer design={proposed} className="proposed-layer" /></g>
-        <line className="comparison-divider" x1={splitX} y1={bounds.minY} x2={splitX} y2={bounds.maxY} />
+      <svg className="comparison-canvas" viewBox={boundsViewBox(bounds)} role="img" aria-label={`${activeLabel} design`}>
+        <DesignLayer design={activeDesign} className={activeClass} />
       </svg>
     </div>
-    <label className="comparison-slider-label">
-      <span>Proposed reveal</span>
-      <input type="range" min="0" max="100" value={split} onChange={(event) => setSplit(Number(event.target.value))} aria-label="Reveal proposed design" />
-      <strong>{split}%</strong>
-    </label>
   </section>;
 }
