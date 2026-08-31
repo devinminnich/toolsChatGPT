@@ -34,7 +34,6 @@ const presets = [
   { name: 'Toilet', category: 'Toilet', widthIn: 18, depthIn: 30 },
   { name: 'Shower', category: 'Shower', widthIn: 60, depthIn: 36 },
   { name: 'Vanity', category: 'Vanity', widthIn: 48, depthIn: 22 },
-  { name: 'Custom', category: 'Custom', widthIn: 24, depthIn: 24 },
 ];
 
 function rectangleVertices(width: number, depth: number): Point[] {
@@ -104,6 +103,11 @@ export default function PersistentPlanner() {
   const [view, setView] = useState<ViewBox>({ x: -600, y: -600, width: INITIAL_WIDTH + 1200, height: INITIAL_DEPTH + 1200 });
   const [widthInput, setWidthInput] = useState(valueForInput(INITIAL_WIDTH, 'ft-in'));
   const [depthInput, setDepthInput] = useState(valueForInput(INITIAL_DEPTH, 'ft-in'));
+  const [customObjectOpen, setCustomObjectOpen] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customWidthInput, setCustomWidthInput] = useState('');
+  const [customDepthInput, setCustomDepthInput] = useState('');
+  const [customObjectError, setCustomObjectError] = useState('');
   const svgRef = useRef<SVGSVGElement | null>(null);
   const panRef = useRef<PanState | null>(null);
   const touchPointsRef = useRef<Map<number, ScreenPoint>>(new Map());
@@ -199,6 +203,47 @@ export default function PersistentPlanner() {
     setSelectedFixtureId(id);
     setSelectedWall(null);
     setMode('select');
+  }
+
+  function openCustomObjectCreator() {
+    setCustomName('');
+    setCustomWidthInput(valueForInput(inchesToMm(24), unit));
+    setCustomDepthInput(valueForInput(inchesToMm(24), unit));
+    setCustomObjectError('');
+    setCustomObjectOpen(true);
+  }
+
+  function createCustomObject() {
+    const name = customName.trim();
+    const widthMm = parseMeasurement(customWidthInput, unit);
+    const depthMm = parseMeasurement(customDepthInput, unit);
+    if (!name) {
+      setCustomObjectError('Give the object a name.');
+      return;
+    }
+    if (!widthMm || !depthMm || widthMm < 25 || depthMm < 25) {
+      setCustomObjectError('Enter valid width and depth values.');
+      return;
+    }
+
+    const id = createId('fixture');
+    const fixture: FixtureInstance = {
+      id,
+      lineageId: id,
+      name,
+      category: 'Custom',
+      widthMm,
+      depthMm,
+      xMm: snap(roomBounds.minX + roomWidth / 2 - widthMm / 2),
+      yMm: snap(roomBounds.minY + roomDepth / 2 - depthMm / 2),
+      rotationDeg: 0,
+    };
+    setFixtures((items) => [...items, fixture]);
+    setSelectedFixtureId(id);
+    setSelectedWall(null);
+    setMode('select');
+    setCustomObjectOpen(false);
+    setCustomObjectError('');
   }
 
   function addSavedObject(definitionId: string) {
@@ -481,6 +526,7 @@ export default function PersistentPlanner() {
           <h2>Fixed objects</h2>
           <div className="object-buttons">
             {presets.map((preset) => <button key={preset.name} onClick={() => addPreset(preset.name, preset.category, preset.widthIn, preset.depthIn)}>+ {preset.name}</button>)}
+            <button type="button" onClick={openCustomObjectCreator}>+ Custom object</button>
           </div>
 
           {workspace.workspace.objectDefinitions.length > 0 && <>
@@ -550,11 +596,31 @@ export default function PersistentPlanner() {
         </aside>
       </main>
 
+      {customObjectOpen && <div className="custom-object-backdrop" onPointerDown={() => setCustomObjectOpen(false)}>
+        <section className="custom-object-sheet" role="dialog" aria-modal="true" aria-labelledby="custom-object-title" onPointerDown={(event) => event.stopPropagation()}>
+          <div className="custom-object-heading">
+            <div><p className="eyebrow">New object</p><h2 id="custom-object-title">Create custom object</h2></div>
+            <button type="button" className="icon-button" aria-label="Close custom object" onClick={() => setCustomObjectOpen(false)}>×</button>
+          </div>
+          <p className="helper">Name it and set its size. It will appear centered in the room, ready to drag into place.</p>
+          <label className="custom-object-field"><span>Name</span><input autoFocus aria-label="Custom object name" value={customName} onChange={(event) => { setCustomName(event.target.value); setCustomObjectError(''); }} placeholder="e.g. Linen cabinet" /></label>
+          <div className="custom-object-dimensions">
+            <label className="custom-object-field"><span>Width</span><input aria-label="Custom object width" value={customWidthInput} onChange={(event) => { setCustomWidthInput(event.target.value); setCustomObjectError(''); }} /></label>
+            <label className="custom-object-field"><span>Depth</span><input aria-label="Custom object depth" value={customDepthInput} onChange={(event) => { setCustomDepthInput(event.target.value); setCustomObjectError(''); }} /></label>
+          </div>
+          {customObjectError && <p className="custom-object-error" role="alert">{customObjectError}</p>}
+          <div className="custom-object-actions">
+            <button type="button" className="secondary-button" onClick={() => setCustomObjectOpen(false)}>Cancel</button>
+            <button type="button" className="primary-action" onClick={createCustomObject}>Create object</button>
+          </div>
+        </section>
+      </div>}
+
       <nav className="mobile-actions">
         <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
         <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Draw</button>
         <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
-        <button onClick={() => addPreset('Custom', 'Custom', 24, 24)}>+ Object</button>
+        <button type="button" onClick={openCustomObjectCreator}>+ Object</button>
       </nav>
     </div>
   );
