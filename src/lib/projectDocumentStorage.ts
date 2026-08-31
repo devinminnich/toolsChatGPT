@@ -12,7 +12,7 @@ export function sanitizeDocumentFilename(name: string) {
   return cleaned || 'document';
 }
 
-export function buildProjectDocumentPath(userId: string, projectId: string, filename: string, id = crypto.randomUUID()) {
+export function buildProjectDocumentPath(userId: string, projectId: string, filename: string, id: string = crypto.randomUUID()) {
   return `${userId}/${projectId}/${id}-${sanitizeDocumentFilename(filename)}`;
 }
 
