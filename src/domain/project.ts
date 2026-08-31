@@ -34,12 +34,44 @@ export type Design = {
   updatedAt: string;
 };
 
+export type ScopeDecisionStatus = 'suggested' | 'accepted' | 'edited' | 'ignored';
+
+export type SavedContractorQuoteScopeItem = {
+  title: string;
+  description?: string;
+  status: 'included' | 'excluded' | 'allowance' | 'optional';
+};
+
+export type SavedContractorQuote = {
+  id: string;
+  contractorName: string;
+  quoteDate?: string;
+  expirationDate?: string;
+  total?: number;
+  labor?: number;
+  materials?: number;
+  allowances?: number;
+  schedule?: string;
+  paymentTerms?: string;
+  scope: SavedContractorQuoteScopeItem[];
+  exclusions: string[];
+  notes: string[];
+  sourceText?: string;
+  importedAt: string;
+};
+
+export type ProjectReviewData = {
+  scopeStatuses: Record<string, ScopeDecisionStatus>;
+  contractorQuotes: SavedContractorQuote[];
+};
+
 export type Project = {
   id: string;
   homeId: string;
   name: string;
   designs: Design[];
   activeDesignId: string;
+  review?: ProjectReviewData;
   createdAt: string;
   updatedAt: string;
 };
