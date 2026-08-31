@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createId, type FixtureInstance, type Point } from './domain/project';
+import { OBJECT_GROUPS, OBJECT_PRESETS } from './domain/objectCatalog';
 import { pinchViewport, type ScreenPoint } from './domain/viewportGestures';
 import { useWorkspace } from './hooks/useWorkspace';
 import { DisplayUnit, formatMeasurement, inchesToMm, parseCoordinate, parseMeasurement, valueForCoordinateInput, valueForInput } from './lib/units';
@@ -31,11 +32,10 @@ const GRID_MM = inchesToMm(1);
 const SNAP_MM = inchesToMm(3);
 const CLOSE_MM = inchesToMm(6);
 
-const presets = [
-  { name: 'Toilet', category: 'Toilet', widthIn: 18, depthIn: 30 },
-  { name: 'Shower', category: 'Shower', widthIn: 60, depthIn: 36 },
-  { name: 'Vanity', category: 'Vanity', widthIn: 48, depthIn: 22 },
-];
+const presetGroups = OBJECT_GROUPS.map((group) => ({
+  group,
+  presets: OBJECT_PRESETS.filter((preset) => preset.group === group),
+}));
 
 function rectangleVertices(width: number, depth: number): Point[] {
   return [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: depth }, { x: 0, y: depth }];
@@ -105,6 +105,7 @@ export default function PersistentPlanner() {
   const [view, setView] = useState<ViewBox>({ x: -600, y: -600, width: INITIAL_WIDTH + 1200, height: INITIAL_DEPTH + 1200 });
   const [widthInput, setWidthInput] = useState(valueForInput(INITIAL_WIDTH, 'ft-in'));
   const [depthInput, setDepthInput] = useState(valueForInput(INITIAL_DEPTH, 'ft-in'));
+  const [objectLibraryOpen, setObjectLibraryOpen] = useState(false);
   const [customObjectOpen, setCustomObjectOpen] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customWidthInput, setCustomWidthInput] = useState('');
@@ -237,6 +238,7 @@ export default function PersistentPlanner() {
     setSelectedFixtureId(id);
     setSelectedWall(null);
     setMode('select');
+    setObjectLibraryOpen(false);
   }
 
   function openCustomObjectCreator() {
@@ -586,10 +588,15 @@ export default function PersistentPlanner() {
             <p className="helper">The room boundary is locked to this project. Use Edit room in the project bar to change its name or shape.</p>
           </>}
 
-          <h2>Fixed objects</h2>
-          <div className="object-buttons">
-            {presets.map((preset) => <button key={preset.name} onClick={() => addPreset(preset.name, preset.category, preset.widthIn, preset.depthIn)}>+ {preset.name}</button>)}
-            <button type="button" onClick={openCustomObjectCreator}>+ Custom object</button>
+          <h2>Object library</h2>
+          <div className="object-library-groups">
+            {presetGroups.map(({ group, presets }) => <details className="object-group" key={group} open={group === 'Doors & windows'}>
+              <summary>{group}<span>{presets.length}</span></summary>
+              <div className="object-buttons">
+                {presets.map((preset) => <button key={preset.name} onClick={() => addPreset(preset.name, preset.category, preset.widthIn, preset.depthIn)}>+ {preset.name}</button>)}
+              </div>
+            </details>)}
+            <button type="button" className="primary-action" onClick={openCustomObjectCreator}>+ Custom object</button>
           </div>
 
           {workspace.workspace.objectDefinitions.length > 0 && <>
@@ -667,6 +674,25 @@ export default function PersistentPlanner() {
         </aside>
       </main>
 
+      {objectLibraryOpen && <div className="custom-object-backdrop" onPointerDown={() => setObjectLibraryOpen(false)}>
+        <section className="custom-object-sheet object-library-sheet" role="dialog" aria-modal="true" aria-labelledby="object-library-title" onPointerDown={(event) => event.stopPropagation()}>
+          <div className="custom-object-heading">
+            <div><p className="eyebrow">Add to design</p><h2 id="object-library-title">Object library</h2></div>
+            <button type="button" className="icon-button" aria-label="Close object library" onClick={() => setObjectLibraryOpen(false)}>×</button>
+          </div>
+          <p className="helper">Choose a common household object. Starter dimensions can be changed after placement.</p>
+          <div className="object-library-dialog-groups">
+            {presetGroups.map(({ group, presets }) => <details className="object-group" key={group} open={group === 'Doors & windows'}>
+              <summary>{group}<span>{presets.length}</span></summary>
+              <div className="object-buttons">
+                {presets.map((preset) => <button key={preset.name} onClick={() => addPreset(preset.name, preset.category, preset.widthIn, preset.depthIn)}>+ {preset.name}</button>)}
+              </div>
+            </details>)}
+          </div>
+          <button type="button" className="primary-action" onClick={() => { setObjectLibraryOpen(false); openCustomObjectCreator(); }}>+ Custom object</button>
+        </section>
+      </div>}
+
       {customObjectOpen && <div className="custom-object-backdrop" onPointerDown={() => setCustomObjectOpen(false)}>
         <section className="custom-object-sheet" role="dialog" aria-modal="true" aria-labelledby="custom-object-title" onPointerDown={(event) => event.stopPropagation()}>
           <div className="custom-object-heading">
@@ -696,7 +722,7 @@ export default function PersistentPlanner() {
         </> : <>
           <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
           <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
-          <button type="button" onClick={openCustomObjectCreator}>+ Object</button>
+          <button type="button" onClick={() => setObjectLibraryOpen(true)}>+ Object</button>
           <button type="button" onClick={() => fitToView()}>Fit</button>
         </>}
       </nav>
