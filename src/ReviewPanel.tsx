@@ -6,8 +6,9 @@ import { calculateMaterials } from './domain/materials';
 import { buildEstimatePdfSections, buildRfqPdfSections } from './domain/pdfContent';
 import { generateRfq } from './domain/rfq';
 import { inferScope, type ScopeSuggestion } from './domain/scopeInference';
-import type { WorkspaceData } from './domain/project';
+import { nowIso, type SavedContractorQuote, type ScopeDecisionStatus, type WorkspaceData } from './domain/project';
 import { WORKSPACE_SAVED_EVENT, workspacePersistence } from './lib/persistence';
+import { downloadDesignPdf } from './lib/designPdfExport';
 import { downloadPdf } from './lib/pdfExport';
 import { formatMeasurement } from './lib/units';
 
@@ -30,7 +31,6 @@ export default function ReviewPanel() {
   const [open, setOpen] = useState(false);
   const [tier, setTier] = useState<QualityTier>('standard');
   const [mode, setMode] = useState<EstimateMode>('contractor');
-  const [scopeOverrides, setScopeOverrides] = useState<Record<string, ScopeSuggestion['status']>>({});
 
   useEffect(() => {
     workspacePersistence.load().then(setWorkspace);
@@ -49,9 +49,9 @@ export default function ReviewPanel() {
       ?? project.designs.find((design) => design.kind === 'proposed');
     if (!existing || !proposed) return { project, existing, proposed: null, diff: null, scope: [] as ScopeSuggestion[] };
     const diff = diffDesigns(existing, proposed);
-    const scope = inferScope(diff).map((item) => ({ ...item, status: scopeOverrides[item.id] ?? item.status }));
+    const scope = inferScope(diff).map((item) => ({ ...item, status: project.review?.scopeStatuses[item.id] ?? item.status }));
     return { project, existing, proposed, diff, scope };
-  }, [workspace, scopeOverrides]);
+  }, [workspace]);
 
   const estimate = useMemo(() => review?.scope ? estimateScope(review.scope, mode, tier) : null, [review?.scope, mode, tier]);
   const materials = useMemo(() => review?.proposed ? calculateMaterials(review.proposed) : [], [review?.proposed]);
@@ -60,6 +60,42 @@ export default function ReviewPanel() {
     return generateRfq(review.project, review.existing, review.proposed, review.scope, materials, estimate ?? undefined);
   }, [review?.project, review?.existing, review?.proposed, review?.scope, materials, estimate]);
   const changeCount = (review?.diff?.fixtureChanges.length ?? 0) + (review?.diff?.geometryChanged ? 1 : 0);
+
+  function persistProjectReview(scopeStatuses: Record<string, ScopeDecisionStatus>, contractorQuotes: SavedContractorQuote[]) {
+    if (!workspace || !review?.project) return;
+    const now = nowIso();
+    const next: WorkspaceData = {
+      ...workspace,
+      updatedAt: now,
+      homes: workspace.homes.map((home) => ({
+        ...home,
+        projects: home.projects.map((project) => project.id !== review.project.id ? project : {
+          ...project,
+          updatedAt: now,
+          review: { scopeStatuses, contractorQuotes },
+        }),
+      })),
+    };
+    setWorkspace(next);
+    void workspacePersistence.save(next);
+  }
+
+  function setScopeStatus(scopeId: string, status: ScopeDecisionStatus) {
+    if (!review?.project) return;
+    persistProjectReview(
+      { ...(review.project.review?.scopeStatuses ?? {}), [scopeId]: status },
+      review.project.review?.contractorQuotes ?? [],
+    );
+  }
+
+  function saveQuote(quote: SavedContractorQuote) {
+    if (!review?.project) return;
+    const current = review.project.review?.contractorQuotes ?? [];
+    const nextQuotes = current.some((item) => item.id === quote.id)
+      ? current.map((item) => item.id === quote.id ? quote : item)
+      : [quote, ...current];
+    persistProjectReview(review.project.review?.scopeStatuses ?? {}, nextQuotes);
+  }
 
   return (
     <section className={`review-drawer ${open ? 'open' : ''}`}>
@@ -78,7 +114,11 @@ export default function ReviewPanel() {
           <>
             <div className="review-heading">
               <div><p className="eyebrow">Comparison</p><h2>{review.existing.name} → {review.proposed.name}</h2></div>
-              <span className="review-count">{changeCount} detected</span>
+              <div className="review-heading-actions">
+                <button type="button" className="secondary-button" onClick={() => downloadDesignPdf(review.project.name, review.existing)}>Existing PDF</button>
+                <button type="button" className="secondary-button" onClick={() => downloadDesignPdf(review.project.name, review.proposed)}>Proposed PDF</button>
+                <span className="review-count">{changeCount} detected</span>
+              </div>
             </div>
 
             <div className="review-grid">
@@ -95,7 +135,7 @@ export default function ReviewPanel() {
                 {review.scope.length === 0 ? <p className="muted">Make a design change to generate scope.</p> : review.scope.map((item) => (
                   <div className={`scope-row status-${item.status}`} key={item.id}>
                     <div><span className="scope-category">{item.category}</span><strong>{item.title}</strong><p>{item.description}</p></div>
-                    <select value={item.status} onChange={(event) => setScopeOverrides((current) => ({ ...current, [item.id]: event.target.value as ScopeSuggestion['status'] }))}>
+                    <select value={item.status} onChange={(event) => setScopeStatus(item.id, event.target.value as ScopeDecisionStatus)}>
                       <option value="suggested">Suggested</option><option value="accepted">Accept</option><option value="ignored">Ignore</option>
                     </select>
                   </div>
@@ -137,7 +177,7 @@ export default function ReviewPanel() {
                   <details><summary>Requested pricing breakdown</summary><ul>{rfq.pricingRequest.map((line) => <li key={line}>{line}</li>)}</ul></details>
                   <details><summary>Contractor questions</summary><ul>{rfq.contractorQuestions.map((line) => <li key={line}>{line}</li>)}</ul></details>
                 </section>
-                <QuoteReview rfq={rfq} />
+                <QuoteReview rfq={rfq} savedQuotes={review.project.review?.contractorQuotes ?? []} onSaveQuote={saveQuote} />
               </>}
             </div>
           </>
