@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
@@ -23,6 +24,7 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "vitest": "latest"
