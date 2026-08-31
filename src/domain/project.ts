@@ -35,6 +35,7 @@ export type Design = {
 };
 
 export type ScopeDecisionStatus = 'suggested' | 'accepted' | 'edited' | 'ignored';
+export type ScopeEdit = { title?: string; description?: string; category?: string };
 
 export type SavedContractorQuoteScopeItem = {
   title: string;
@@ -62,6 +63,7 @@ export type SavedContractorQuote = {
 
 export type ProjectReviewData = {
   scopeStatuses: Record<string, ScopeDecisionStatus>;
+  scopeEdits?: Record<string, ScopeEdit>;
   contractorQuotes: SavedContractorQuote[];
 };
 
