@@ -67,6 +67,24 @@ export type ProjectReviewData = {
   contractorQuotes: SavedContractorQuote[];
 };
 
+export type ProjectActivityType =
+  | 'project-created'
+  | 'project-renamed'
+  | 'proposal-created'
+  | 'scope-updated'
+  | 'quote-saved'
+  | 'design-exported'
+  | 'estimate-exported'
+  | 'rfq-exported';
+
+export type ProjectActivity = {
+  id: string;
+  type: ProjectActivityType;
+  title: string;
+  detail?: string;
+  createdAt: string;
+};
+
 export type Project = {
   id: string;
   homeId: string;
@@ -74,6 +92,7 @@ export type Project = {
   designs: Design[];
   activeDesignId: string;
   review?: ProjectReviewData;
+  activity?: ProjectActivity[];
   createdAt: string;
   updatedAt: string;
 };
