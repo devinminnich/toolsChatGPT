@@ -9,6 +9,22 @@ export type CostRange = {
   high: number;
 };
 
+export type EstimateRegionProfile = {
+  id: string;
+  label: string;
+  factor: number;
+  source: 'curated-assumption' | 'user-override';
+  note?: string;
+};
+
+export const NATIONAL_BASELINE_REGION: EstimateRegionProfile = {
+  id: 'national-baseline',
+  label: 'National baseline',
+  factor: 1,
+  source: 'curated-assumption',
+  note: 'Neutral baseline until a project-specific regional profile is selected.',
+};
+
 export type EstimateItem = {
   id: string;
   scopeId: string;
@@ -18,12 +34,14 @@ export type EstimateItem = {
   tier: QualityTier;
   cost: CostRange;
   provenance: 'regional-assumption';
+  region: EstimateRegionProfile;
   notes: string[];
 };
 
 export type EstimateSummary = {
   mode: EstimateMode;
   tier: QualityTier;
+  region: EstimateRegionProfile;
   items: EstimateItem[];
   subtotal: CostRange;
   contingency: CostRange;
@@ -85,9 +103,10 @@ export function estimateScope(
   scope: ScopeSuggestion[],
   mode: EstimateMode,
   tier: QualityTier = 'standard',
+  region: EstimateRegionProfile = NATIONAL_BASELINE_REGION,
 ): EstimateSummary {
   const included = scope.filter((item) => item.status !== 'ignored');
-  const factor = TIER_MULTIPLIER[tier];
+  const factor = TIER_MULTIPLIER[tier] * region.factor;
 
   const items = included.map<EstimateItem>((item) => {
     const assumption = ASSUMPTIONS[item.category] ?? DEFAULT;
@@ -100,8 +119,10 @@ export function estimateScope(
       tier,
       cost: scale(assumption[mode], factor),
       provenance: 'regional-assumption',
+      region,
       notes: [
-        'Preliminary regional assumption, not a contractor quote.',
+        `${region.label} cost profile (${region.factor.toFixed(2)}× baseline).`,
+        region.note ?? 'Regional factor can be replaced with a project-specific assumption.',
         mode === 'diy'
           ? 'Includes a basic allowance for materials/consumables associated with this scope item.'
           : 'Represents a broad installed-cost allowance; local labor, access, permits, and hidden conditions may materially change pricing.',
@@ -114,5 +135,5 @@ export function estimateScope(
   const contingency = scale(subtotal, contingencyRate);
   const total = add(subtotal, contingency);
 
-  return { mode, tier, items, subtotal, contingency, total };
+  return { mode, tier, region, items, subtotal, contingency, total };
 }
