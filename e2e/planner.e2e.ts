@@ -29,12 +29,26 @@ test('creates a second home with an isolated first project and switches back', a
   await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Primary Bathroom');
 });
 
-test('branches Existing into Proposed and exposes project review', async ({ page }) => {
+test('branches Existing into Proposed and switches the complete comparison view', async ({ page }) => {
   await page.getByRole('button', { name: '+ Proposed option' }).click();
   await expect(page.getByRole('button', { name: 'Option A' })).toBeVisible();
   await page.getByRole('button', { name: 'Review project' }).click();
   await expect(page.getByRole('heading', { name: 'Existing → Option A' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Visual comparison' })).toBeVisible();
+
+  const comparisonSwitch = page.getByRole('switch', { name: 'Switch between Actual and Proposal' });
+  await expect(comparisonSwitch).toHaveAttribute('aria-checked', 'false');
+  await expect(page.getByRole('img', { name: 'Actual design' })).toBeVisible();
+  await expect(page.getByText('Showing Actual')).toBeVisible();
+
+  await comparisonSwitch.click();
+  await expect(comparisonSwitch).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('img', { name: 'Proposal design' })).toBeVisible();
+  await expect(page.getByText('Showing Proposal')).toBeVisible();
+
+  await comparisonSwitch.click();
+  await expect(comparisonSwitch).toHaveAttribute('aria-checked', 'false');
+  await expect(page.getByRole('img', { name: 'Actual design' })).toBeVisible();
 });
 
 test('detects a proposed fixture addition and generates scope', async ({ page, isMobile }) => {
