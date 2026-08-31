@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createId, type FixtureInstance, type Point } from './domain/project';
 import { pinchViewport, type ScreenPoint } from './domain/viewportGestures';
 import { useWorkspace } from './hooks/useWorkspace';
-import { DisplayUnit, formatMeasurement, inchesToMm, parseMeasurement, valueForInput } from './lib/units';
+import { DisplayUnit, formatMeasurement, inchesToMm, parseCoordinate, parseMeasurement, valueForCoordinateInput, valueForInput } from './lib/units';
 
 type Mode = 'select' | 'draw' | 'pan';
 type ViewBox = { x: number; y: number; width: number; height: number };
@@ -84,6 +84,10 @@ function snapWall(point: Point, previous: Point) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeDegrees(value: number) {
+  return ((value % 360) + 360) % 360;
 }
 
 export default function PersistentPlanner() {
@@ -214,6 +218,20 @@ export default function PersistentPlanner() {
     if (!selectedFixture) return;
     const definition = workspace.saveObjectDefinition(selectedFixture);
     setFixtures((items) => items.map((item) => item.id === selectedFixture.id ? { ...item, definitionId: definition.id } : item));
+  }
+
+  function duplicateSelectedFixture() {
+    if (!selectedFixture) return;
+    const id = createId('fixture');
+    const duplicate: FixtureInstance = {
+      ...selectedFixture,
+      id,
+      lineageId: id,
+      xMm: selectedFixture.xMm + GRID_MM * 2,
+      yMm: selectedFixture.yMm + GRID_MM * 2,
+    };
+    setFixtures((items) => [...items, duplicate]);
+    setSelectedFixtureId(id);
   }
 
   function duplicateDesign() {
@@ -381,6 +399,20 @@ export default function PersistentPlanner() {
     setFixtures((items) => items.map((fixture) => fixture.id === selectedFixture.id ? { ...fixture, [key]: value } : fixture));
   }
 
+  function updateFixtureCoordinate(key: 'xMm' | 'yMm', raw: string) {
+    if (!selectedFixture) return;
+    const value = parseCoordinate(raw, unit);
+    if (value === null) return;
+    setFixtures((items) => items.map((fixture) => fixture.id === selectedFixture.id ? { ...fixture, [key]: value } : fixture));
+  }
+
+  function updateFixtureRotation(raw: string) {
+    if (!selectedFixture) return;
+    const value = Number(raw.replace(/[^0-9.+-]/g, ''));
+    if (!Number.isFinite(value)) return;
+    setFixtures((items) => items.map((fixture) => fixture.id === selectedFixture.id ? { ...fixture, rotationDeg: normalizeDegrees(value) } : fixture));
+  }
+
   function wheel(event: React.WheelEvent<SVGSVGElement>) {
     event.preventDefault();
     const factor = Math.exp(event.deltaY * 0.0012);
@@ -485,11 +517,15 @@ export default function PersistentPlanner() {
           {selectedFixture ? <>
             <div className="properties-heading"><div><p className="eyebrow">Selected object</p><h2>{selectedFixture.name}</h2></div><button className="icon-button" onClick={() => setSelectedFixtureId(null)}>×</button></div>
             <div className="field-grid">
+              <label><span>X position</span><input key={`${selectedFixture.id}-x-${selectedFixture.xMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.xMm, unit)} onBlur={(event) => updateFixtureCoordinate('xMm', event.target.value)} /></label>
+              <label><span>Y position</span><input key={`${selectedFixture.id}-y-${selectedFixture.yMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.yMm, unit)} onBlur={(event) => updateFixtureCoordinate('yMm', event.target.value)} /></label>
               <label><span>Width</span><input key={`${selectedFixture.id}-w-${selectedFixture.widthMm}-${unit}`} defaultValue={valueForInput(selectedFixture.widthMm, unit)} onBlur={(event) => updateFixtureDimension('widthMm', event.target.value)} /></label>
               <label><span>Depth</span><input key={`${selectedFixture.id}-d-${selectedFixture.depthMm}-${unit}`} defaultValue={valueForInput(selectedFixture.depthMm, unit)} onBlur={(event) => updateFixtureDimension('depthMm', event.target.value)} /></label>
+              <label><span>Rotation (degrees)</span><input inputMode="decimal" key={`${selectedFixture.id}-r-${selectedFixture.rotationDeg}`} defaultValue={String(selectedFixture.rotationDeg)} onBlur={(event) => updateFixtureRotation(event.target.value)} /></label>
             </div>
             <div className="property-actions">
               <button onClick={() => setFixtures((items) => items.map((item) => item.id === selectedFixture.id ? { ...item, rotationDeg: (item.rotationDeg + 90) % 360 } : item))}>Rotate 90°</button>
+              <button onClick={duplicateSelectedFixture}>Duplicate</button>
               <button className="danger" onClick={() => { setFixtures((items) => items.filter((item) => item.id !== selectedFixture.id)); setSelectedFixtureId(null); }}>Delete</button>
             </div>
             <button className="primary-action" type="button" onClick={saveSelectedObject}>{selectedFixture.definitionId ? 'Update My Object' : 'Save to My Objects'}</button>
