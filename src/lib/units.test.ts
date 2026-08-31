@@ -17,6 +17,12 @@ describe('measurement units', () => {
     expect(parseMeasurement(displayed, 'ft-in')).toBe(mm);
   });
 
+  it('hides sub-millimeter whole-inch conversion artifacts in inputs', () => {
+    expect(valueForInput(304, 'in')).toBe('12');
+    expect(valueForInput(558, 'in')).toBe('22');
+    expect(valueForInput(inchesToMm(12.5), 'in')).toBe('12.52');
+  });
+
   it('converts metric display modes from the same canonical millimeters', () => {
     expect(parseMeasurement('1000', 'mm')).toBe(1000);
     expect(parseMeasurement('100', 'cm')).toBe(1000);
