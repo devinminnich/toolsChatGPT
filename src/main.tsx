@@ -4,6 +4,7 @@ import AppShell from './AppShell';
 import './styles.css';
 import './workspace.css';
 import './auth.css';
+import './projectbar.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
