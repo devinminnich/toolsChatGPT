@@ -1,0 +1,78 @@
+name: Apply custom object placement
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-custom-object-placement.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Update custom object creation flow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/PersistentPlanner.tsx')
+          text = path.read_text()
+
+          old = """      xMm: snap(roomBounds.minX + roomWidth / 2 - widthMm / 2),\n      yMm: snap(roomBounds.minY + roomDepth / 2 - depthMm / 2),"""
+          new = """      xMm: snap(view.x + view.width / 2 - widthMm / 2),\n      yMm: snap(view.y + view.height / 2 - depthMm / 2),"""
+          if old not in text:
+              raise SystemExit('custom object placement anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = """            <div className=\"field-grid\">\n              <label><span>X position</span><input key={`${selectedFixture.id}-x-${selectedFixture.xMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.xMm, unit)} onBlur={(event) => updateFixtureCoordinate('xMm', event.target.value)} /></label>\n              <label><span>Y position</span><input key={`${selectedFixture.id}-y-${selectedFixture.yMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.yMm, unit)} onBlur={(event) => updateFixtureCoordinate('yMm', event.target.value)} /></label>\n              <label><span>Width</span><input key={`${selectedFixture.id}-w-${selectedFixture.widthMm}-${unit}`} defaultValue={valueForInput(selectedFixture.widthMm, unit)} onBlur={(event) => updateFixtureDimension('widthMm', event.target.value)} /></label>\n              <label><span>Depth</span><input key={`${selectedFixture.id}-d-${selectedFixture.depthMm}-${unit}`} defaultValue={valueForInput(selectedFixture.depthMm, unit)} onBlur={(event) => updateFixtureDimension('depthMm', event.target.value)} /></label>\n              <label><span>Rotation (degrees)</span><input inputMode=\"decimal\" key={`${selectedFixture.id}-r-${selectedFixture.rotationDeg}`} defaultValue={String(selectedFixture.rotationDeg)} onBlur={(event) => updateFixtureRotation(event.target.value)} /></label>\n            </div>"""
+          new = """            <p className=\"helper\">Drag this object on the drawing to place it. Use Precision only when you want exact coordinates.</p>\n            <div className=\"field-grid\">\n              <label><span>Width</span><input key={`${selectedFixture.id}-w-${selectedFixture.widthMm}-${unit}`} defaultValue={valueForInput(selectedFixture.widthMm, unit)} onBlur={(event) => updateFixtureDimension('widthMm', event.target.value)} /></label>\n              <label><span>Depth</span><input key={`${selectedFixture.id}-d-${selectedFixture.depthMm}-${unit}`} defaultValue={valueForInput(selectedFixture.depthMm, unit)} onBlur={(event) => updateFixtureDimension('depthMm', event.target.value)} /></label>\n              <label><span>Rotation (degrees)</span><input inputMode=\"decimal\" key={`${selectedFixture.id}-r-${selectedFixture.rotationDeg}`} defaultValue={String(selectedFixture.rotationDeg)} onBlur={(event) => updateFixtureRotation(event.target.value)} /></label>\n            </div>\n            <details className=\"precision-details\">\n              <summary>Precision</summary>\n              <div className=\"field-grid\">\n                <label><span>X position</span><input key={`${selectedFixture.id}-x-${selectedFixture.xMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.xMm, unit)} onBlur={(event) => updateFixtureCoordinate('xMm', event.target.value)} /></label>\n                <label><span>Y position</span><input key={`${selectedFixture.id}-y-${selectedFixture.yMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.yMm, unit)} onBlur={(event) => updateFixtureCoordinate('yMm', event.target.value)} /></label>\n              </div>\n            </details>"""
+          if old not in text:
+              raise SystemExit('selected object editor anchor not found')
+          text = text.replace(old, new, 1)
+
+          text = text.replace('It will appear centered in the room, ready to drag into place.', 'It will appear in the center of your current view, ready to drag into place.', 1)
+          path.write_text(text)
+
+          test_path = Path('e2e/planner.e2e.ts')
+          tests = test_path.read_text()
+          addition = r'''
+
+test('creates a named custom object in view without requiring coordinates', async ({ page, isMobile }) => {
+  await page.getByRole('button', { name: isMobile ? '+ Object' : '+ Custom object' }).click();
+  await page.getByLabel('Custom object name').fill('Linen Cabinet');
+  await page.getByLabel('Custom object width').fill('24');
+  await page.getByLabel('Custom object depth').fill('18');
+  await page.getByRole('button', { name: 'Create object' }).click();
+
+  await expect(page.getByText('Linen Cabinet', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Drag this object on the drawing to place it/)).toBeVisible();
+  await expect(page.getByText('Precision', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('X position')).not.toBeVisible();
+
+  await page.getByText('Precision', { exact: true }).click();
+  await expect(page.getByLabel('X position')).toBeVisible();
+  await expect(page.getByLabel('Y position')).toBeVisible();
+});
+'''
+          if "creates a named custom object in view without requiring coordinates" not in tests:
+              test_path.write_text(tests.rstrip() + addition + '\n')
+          PY
+      - name: Validate patch
+        run: |
+          git diff --check
+          grep -q "center of your current view" src/PersistentPlanner.tsx
+          grep -q "Drag this object on the drawing to place it" src/PersistentPlanner.tsx
+          grep -q "creates a named custom object in view" e2e/planner.e2e.ts
+      - name: Commit feature
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/PersistentPlanner.tsx e2e/planner.e2e.ts
+          git commit -m "Improve custom object creation and placement"
+          git push origin main
