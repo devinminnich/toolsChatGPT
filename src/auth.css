@@ -22,6 +22,8 @@
 }
 
 .auth-local { background: #f6f8fb; border-color: #d8e0ea; color: #607086; }
+.auth-offline { border-left: 4px solid #0f9d8a; }
+.auth-offline span:first-child { color: #0b1f3a; font-weight: 750; }
 .auth-form { justify-content: flex-start; flex-wrap: wrap; }
 .auth-form label { display: flex; align-items: center; gap: 8px; }
 .auth-form input { min-height: 34px; width: min(260px, 58vw); border: 1px solid #b9c7d8; border-radius: 8px; padding: 5px 9px; }
@@ -29,6 +31,7 @@
 
 @media (max-width: 640px) {
   .auth-bar { font-size: .72rem; }
-  .auth-local span:last-child { display: none; }
+  .auth-local:not(.auth-offline) span:last-child { display: none; }
+  .auth-offline { align-items: flex-start; flex-direction: column; gap: 2px; padding-block: 7px; }
   .auth-form label > span { display: none; }
 }
