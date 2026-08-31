@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 const STORAGE_KEY = 'home-renovation-planner.workspace.v1';
 export const WORKSPACE_SAVED_EVENT = 'home-renovation-planner:workspace-saved';
 
-export type PersistenceStatus = 'idle' | 'saving' | 'saved' | 'error';
+export type PersistenceStatus = 'idle' | 'saving' | 'saved' | 'offline' | 'error';
 
 export interface WorkspacePersistence {
   load(): Promise<WorkspaceData | null>;
@@ -31,10 +31,14 @@ function publishWorkspace(data: WorkspaceData) {
   window.dispatchEvent(new CustomEvent<WorkspaceData>(WORKSPACE_SAVED_EVENT, { detail: data }));
 }
 
+function isOffline() {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
 class LocalFirstWorkspacePersistence implements WorkspacePersistence {
   async load(): Promise<WorkspaceData | null> {
     const local = parseWorkspace(localStorage.getItem(STORAGE_KEY));
-    if (!supabase) return local;
+    if (!supabase || isOffline()) return local;
 
     try {
       const { data: authData } = await supabase.auth.getUser();
@@ -60,7 +64,7 @@ class LocalFirstWorkspacePersistence implements WorkspacePersistence {
   async save(data: WorkspaceData): Promise<void> {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     publishWorkspace(data);
-    if (!supabase) return;
+    if (!supabase || isOffline()) return;
 
     const { data: authData } = await supabase.auth.getUser();
     const user = authData.user;
