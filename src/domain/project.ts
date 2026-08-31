@@ -1,0 +1,88 @@
+export type Point = { x: number; y: number };
+
+export type FixtureInstance = {
+  id: string;
+  lineageId: string;
+  definitionId?: string;
+  name: string;
+  category: string;
+  widthMm: number;
+  depthMm: number;
+  xMm: number;
+  yMm: number;
+  rotationDeg: number;
+};
+
+export type ObjectDefinition = {
+  id: string;
+  name: string;
+  category: string;
+  widthMm: number;
+  depthMm: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Design = {
+  id: string;
+  name: string;
+  kind: 'existing' | 'proposed';
+  baselineDesignId?: string;
+  vertices: Point[];
+  fixtures: FixtureInstance[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Project = {
+  id: string;
+  homeId: string;
+  name: string;
+  designs: Design[];
+  activeDesignId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Home = {
+  id: string;
+  name: string;
+  projects: Project[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkspaceData = {
+  schemaVersion: 1;
+  homes: Home[];
+  activeHomeId: string;
+  activeProjectId: string;
+  objectDefinitions: ObjectDefinition[];
+  updatedAt: string;
+};
+
+export function nowIso() {
+  return new Date().toISOString();
+}
+
+export function createId(prefix: string) {
+  return `${prefix}_${crypto.randomUUID()}`;
+}
+
+export function cloneAsProposed(source: Design, name: string): Design {
+  const now = nowIso();
+  return {
+    id: createId('design'),
+    name,
+    kind: 'proposed',
+    baselineDesignId: source.kind === 'existing' ? source.id : source.baselineDesignId ?? source.id,
+    vertices: source.vertices.map((point) => ({ ...point })),
+    fixtures: source.fixtures.map((fixture) => ({
+      ...fixture,
+      id: createId('fixture'),
+      lineageId: fixture.lineageId || fixture.id,
+    })),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
