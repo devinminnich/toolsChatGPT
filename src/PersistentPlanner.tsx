@@ -234,8 +234,8 @@ export default function PersistentPlanner() {
       category: 'Custom',
       widthMm,
       depthMm,
-      xMm: Math.round(roomBounds.minX + roomWidth / 2 - widthMm / 2),
-      yMm: Math.round(roomBounds.minY + roomDepth / 2 - depthMm / 2),
+      xMm: Math.round(view.x + view.width / 2 - widthMm / 2),
+      yMm: Math.round(view.y + view.height / 2 - depthMm / 2),
       rotationDeg: 0,
     };
     setFixtures((items) => [...items, fixture]);
@@ -576,13 +576,19 @@ export default function PersistentPlanner() {
         <aside className={`tool-panel properties-panel ${selectedFixture || selectedWall !== null ? 'is-open' : ''}`}>
           {selectedFixture ? <>
             <div className="properties-heading"><div><p className="eyebrow">Selected object</p><h2>{selectedFixture.name}</h2></div><button className="icon-button" onClick={() => setSelectedFixtureId(null)}>×</button></div>
+            <p className="helper">Drag this object on the drawing to place it. Use Precision only when you want exact coordinates.</p>
             <div className="field-grid">
-              <label><span>X position</span><input key={`${selectedFixture.id}-x-${selectedFixture.xMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.xMm, unit)} onBlur={(event) => updateFixtureCoordinate('xMm', event.target.value)} /></label>
-              <label><span>Y position</span><input key={`${selectedFixture.id}-y-${selectedFixture.yMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.yMm, unit)} onBlur={(event) => updateFixtureCoordinate('yMm', event.target.value)} /></label>
               <label><span>Width</span><input key={`${selectedFixture.id}-w-${selectedFixture.widthMm}-${unit}`} defaultValue={valueForInput(selectedFixture.widthMm, unit)} onBlur={(event) => updateFixtureDimension('widthMm', event.target.value)} /></label>
               <label><span>Depth</span><input key={`${selectedFixture.id}-d-${selectedFixture.depthMm}-${unit}`} defaultValue={valueForInput(selectedFixture.depthMm, unit)} onBlur={(event) => updateFixtureDimension('depthMm', event.target.value)} /></label>
               <label><span>Rotation (degrees)</span><input inputMode="decimal" key={`${selectedFixture.id}-r-${selectedFixture.rotationDeg}`} defaultValue={String(selectedFixture.rotationDeg)} onBlur={(event) => updateFixtureRotation(event.target.value)} /></label>
             </div>
+            <details className="precision-details">
+              <summary>Precision</summary>
+              <div className="field-grid">
+                <label><span>X position</span><input key={`${selectedFixture.id}-x-${selectedFixture.xMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.xMm, unit)} onBlur={(event) => updateFixtureCoordinate('xMm', event.target.value)} /></label>
+                <label><span>Y position</span><input key={`${selectedFixture.id}-y-${selectedFixture.yMm}-${unit}`} defaultValue={valueForCoordinateInput(selectedFixture.yMm, unit)} onBlur={(event) => updateFixtureCoordinate('yMm', event.target.value)} /></label>
+              </div>
+            </details>
             <div className="property-actions">
               <button onClick={() => setFixtures((items) => items.map((item) => item.id === selectedFixture.id ? { ...item, rotationDeg: (item.rotationDeg + 90) % 360 } : item))}>Rotate 90°</button>
               <button onClick={duplicateSelectedFixture}>Duplicate</button>
@@ -602,7 +608,7 @@ export default function PersistentPlanner() {
             <div><p className="eyebrow">New object</p><h2 id="custom-object-title">Create custom object</h2></div>
             <button type="button" className="icon-button" aria-label="Close custom object" onClick={() => setCustomObjectOpen(false)}>×</button>
           </div>
-          <p className="helper">Name it and set its size. It will appear centered in the room, ready to drag into place.</p>
+          <p className="helper">Name it and set its size. It will appear in the center of your current view, ready to drag into place.</p>
           <label className="custom-object-field"><span>Name</span><input autoFocus aria-label="Custom object name" value={customName} onChange={(event) => { setCustomName(event.target.value); setCustomObjectError(''); }} placeholder="e.g. Linen cabinet" /></label>
           <div className="custom-object-dimensions">
             <label className="custom-object-field"><span>Width</span><input aria-label="Custom object width" value={customWidthInput} onChange={(event) => { setCustomWidthInput(event.target.value); setCustomObjectError(''); }} /></label>

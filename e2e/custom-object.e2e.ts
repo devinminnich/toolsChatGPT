@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByLabel('Current renovation project')).toBeVisible();
 });
 
-test('creates a named custom object centered in the room without asking for placement coordinates', async ({ page, isMobile }) => {
+test('creates a named custom object in the current view without requiring placement coordinates', async ({ page, isMobile }) => {
   await page.getByLabel('Units').selectOption('in');
   await page.getByRole('button', { name: isMobile ? '+ Object' : '+ Custom object', exact: true }).click();
 
@@ -28,10 +28,12 @@ test('creates a named custom object centered in the room without asking for plac
   const properties = page.locator('.properties-panel.is-open');
   await expect(properties.getByLabel('Width')).toHaveValue('30');
   await expect(properties.getByLabel('Depth')).toHaveValue('18');
-  const x = Number(await properties.getByLabel('X position').inputValue());
-  const y = Number(await properties.getByLabel('Y position').inputValue());
-  expect(x).toBeCloseTo(71, 1);
-  expect(y).toBeCloseTo(37, 1);
+  await expect(properties.getByText(/Drag this object on the drawing to place it/)).toBeVisible();
+  await expect(properties.getByLabel('X position')).not.toBeVisible();
+  await expect(properties.getByLabel('Y position')).not.toBeVisible();
+  await properties.getByText('Precision', { exact: true }).click();
+  await expect(properties.getByLabel('X position')).toBeVisible();
+  await expect(properties.getByLabel('Y position')).toBeVisible();
 });
 
 test('requires a custom object name before creation', async ({ page, isMobile }) => {
