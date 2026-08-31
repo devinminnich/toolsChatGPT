@@ -2,6 +2,7 @@ import type { WorkspaceData } from '../domain/project';
 import { supabase } from './supabase';
 
 const STORAGE_KEY = 'home-renovation-planner.workspace.v1';
+export const WORKSPACE_SAVED_EVENT = 'home-renovation-planner:workspace-saved';
 
 export type PersistenceStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -24,6 +25,10 @@ function newest(a: WorkspaceData | null, b: WorkspaceData | null) {
   if (!a) return b;
   if (!b) return a;
   return Date.parse(a.updatedAt) >= Date.parse(b.updatedAt) ? a : b;
+}
+
+function publishWorkspace(data: WorkspaceData) {
+  window.dispatchEvent(new CustomEvent<WorkspaceData>(WORKSPACE_SAVED_EVENT, { detail: data }));
 }
 
 class LocalFirstWorkspacePersistence implements WorkspacePersistence {
@@ -54,6 +59,7 @@ class LocalFirstWorkspacePersistence implements WorkspacePersistence {
 
   async save(data: WorkspaceData): Promise<void> {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    publishWorkspace(data);
     if (!supabase) return;
 
     const { data: authData } = await supabase.auth.getUser();
