@@ -28,6 +28,7 @@ export type Design = {
   name: string;
   kind: 'existing' | 'proposed';
   baselineDesignId?: string;
+  /** Legacy mirror of the project room boundary. Kept for persisted V1 compatibility. */
   vertices: Point[];
   fixtures: FixtureInstance[];
   createdAt: string;
@@ -80,6 +81,7 @@ export type ProjectReviewData = {
 export type ProjectActivityType =
   | 'project-created'
   | 'project-renamed'
+  | 'room-updated'
   | 'proposal-created'
   | 'scope-updated'
   | 'quote-saved'
@@ -99,6 +101,8 @@ export type Project = {
   id: string;
   homeId: string;
   name: string;
+  /** Canonical room boundary shared by Existing and every Proposed design. */
+  roomVertices?: Point[];
   designs: Design[];
   activeDesignId: string;
   review?: ProjectReviewData;
