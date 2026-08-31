@@ -608,6 +608,7 @@ export default function PersistentPlanner() {
                 <button type="button" onClick={undoLastDraftLine} disabled={draft.length < 2}>Undo line</button>
                 <button type="button" onClick={clearDraft} disabled={draft.length === 0}>Clear</button>
               </>}
+              {roomEditing && mode !== 'draw' && <button type="button" onClick={beginDraw}>Redraw</button>}
               {roomEditing && <button type="button" onClick={finishRoomEdit}>Done room</button>}
               <button type="button" onClick={() => fitToView()}>Fit</button>
             </div>
