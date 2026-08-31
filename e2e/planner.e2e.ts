@@ -7,12 +7,16 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByLabel('Current renovation project')).toBeVisible();
 });
 
-test('creates and switches to a new renovation project', async ({ page }) => {
+test('creates and switches to a new renovation project with its room boundary', async ({ page }) => {
   await page.getByRole('button', { name: '+ Project' }).click();
   await page.getByLabel('New project name').fill('Back Patio');
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.getByLabel('Room width in inches').fill('180');
+  await page.getByLabel('Room depth in inches').fill('120');
+  await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Back Patio');
   await expect(page.getByText(/My House \/ Back Patio/)).toBeVisible();
+  await page.getByLabel('Units').selectOption('in');
+  await expect(page.locator('.canvas-toolbar')).toContainText('180 in × 120 in envelope');
 });
 
 test('creates a second home with an isolated first project and switches back', async ({ page }) => {
@@ -122,7 +126,7 @@ test('reports offline mode without losing the loaded project', async ({ page }) 
 test('undo restores the previous saved workspace state', async ({ page }) => {
   await page.getByRole('button', { name: '+ Project' }).click();
   await page.getByLabel('New project name').fill('Undo Test');
-  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Undo Test');
   const undo = page.getByRole('button', { name: 'Undo last saved edit' });
   await expect(undo).toBeEnabled();
