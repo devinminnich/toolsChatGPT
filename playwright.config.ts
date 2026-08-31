@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const previewBase = 'http://127.0.0.1:4173/toolsChatGPT/';
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.ts',
@@ -8,7 +10,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? 'line' : 'list',
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: previewBase,
     trace: 'retain-on-failure',
   },
   projects: [
@@ -16,8 +18,8 @@ export default defineConfig({
     { name: 'chromium-mobile', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 4173',
-    url: 'http://127.0.0.1:4173',
+    command: 'npm run preview -- --host 127.0.0.1 --port 4173',
+    url: previewBase,
     reuseExistingServer: !process.env.CI,
   },
 });
