@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimateScope } from './estimating';
+import { estimateScope, type EstimateRegionProfile } from './estimating';
 import type { ScopeSuggestion } from './scopeInference';
 
 const scope: ScopeSuggestion[] = [
@@ -33,11 +33,26 @@ describe('estimateScope', () => {
     expect(result.subtotal.typical).toBe(1650);
     expect(result.contingency.typical).toBe(248);
     expect(result.total.typical).toBe(1898);
+    expect(result.region.label).toBe('National baseline');
   });
 
   it('scales premium estimates above standard', () => {
     const standard = estimateScope(scope, 'diy', 'standard');
     const premium = estimateScope(scope, 'diy', 'premium');
     expect(premium.total.typical).toBeGreaterThan(standard.total.typical);
+  });
+
+  it('applies an explicit regional adjustment and preserves provenance', () => {
+    const region: EstimateRegionProfile = {
+      id: 'test-region',
+      label: 'Test Region',
+      factor: 1.2,
+      source: 'user-override',
+    };
+    const baseline = estimateScope(scope, 'contractor', 'standard');
+    const adjusted = estimateScope(scope, 'contractor', 'standard', region);
+    expect(adjusted.subtotal.typical).toBe(Math.round(baseline.subtotal.typical * 1.2));
+    expect(adjusted.region).toEqual(region);
+    expect(adjusted.items[0].notes[0]).toContain('Test Region');
   });
 });
