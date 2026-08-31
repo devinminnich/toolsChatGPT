@@ -7,18 +7,24 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByLabel('Current renovation project')).toBeVisible();
 });
 
-test('sets the room boundary when the project is created and keeps it locked in design mode', async ({ page }) => {
-  await page.getByRole('button', { name: '+ Project' }).click();
-  await page.getByLabel('New project name').fill('Measured Room');
-  await page.getByLabel('Room width in inches').fill('172');
-  await page.getByLabel('Room depth in inches').fill('92');
-  await page.getByRole('button', { name: 'Create project' }).click();
+test('keeps the room locked in design mode and exposes drawing only through Edit room', async ({ page }) => {
+  await expect(page.locator('.vertex-handle')).toHaveCount(0);
+  await expect(page.locator('.wall-line').first()).toHaveCSS('pointer-events', 'none');
 
-  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Measured Room');
-  await page.getByLabel('Units').selectOption('in');
-  await expect(page.locator('.canvas-toolbar')).toContainText('172 in × 92 in envelope');
+  await page.getByRole('button', { name: 'Edit room' }).click();
+  await page.getByRole('button', { name: 'Design custom shape' }).click();
+  await expect(page.locator('.design-canvas')).toHaveClass(/room-editing/);
+  await expect(page.locator('.vertex-handle')).toHaveCount(4);
 
-  await expect(page.locator('.vertex-handle').first()).toBeHidden();
-  const wall = page.locator('.wall-line').first();
-  await expect(wall).toHaveCSS('pointer-events', 'none');
+  await page.getByRole('button', { name: 'Redraw', exact: true }).click();
+  const canvas = page.locator('.design-canvas');
+  await canvas.click({ position: { x: 90, y: 120 } });
+  await canvas.click({ position: { x: 180, y: 120 } });
+  await expect(page.locator('.draft-shape circle')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Undo line' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Undo line' }).click();
+  await expect(page.locator('.draft-shape circle')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await expect(page.locator('.draft-shape')).toHaveCount(0);
 });
