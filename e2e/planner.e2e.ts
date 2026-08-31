@@ -35,6 +35,31 @@ test('detects a proposed fixture addition and generates scope', async ({ page, i
   await expect(page.getByRole('heading', { name: 'Suggested scope' })).toBeVisible();
 });
 
+test('supports exact fixture position rotation and duplication', async ({ page, isMobile }) => {
+  await page.getByRole('button', { name: '+ Proposed option' }).click();
+  if (isMobile) await page.getByRole('button', { name: '+ Object' }).click();
+  else await page.getByRole('button', { name: '+ Shower' }).click();
+
+  await page.getByLabel('Units').selectOption('in');
+  const x = page.getByLabel('X position');
+  const y = page.getByLabel('Y position');
+  const rotation = page.getByLabel('Rotation (degrees)');
+  await x.fill('10');
+  await x.blur();
+  await y.fill('20');
+  await y.blur();
+  await rotation.fill('45');
+  await rotation.blur();
+
+  await expect(page.getByLabel('X position')).toHaveValue('10');
+  await expect(page.getByLabel('Y position')).toHaveValue('20');
+  await expect(page.getByLabel('Rotation (degrees)')).toHaveValue('45');
+
+  await page.getByRole('button', { name: 'Duplicate', exact: true }).click();
+  await expect(page.getByLabel('X position')).toHaveValue('12');
+  await expect(page.getByLabel('Y position')).toHaveValue('22');
+});
+
 test('downloads a dimensioned proposed-design PDF', async ({ page }) => {
   await page.getByRole('button', { name: '+ Proposed option' }).click();
   await page.getByRole('button', { name: 'Review project' }).click();
