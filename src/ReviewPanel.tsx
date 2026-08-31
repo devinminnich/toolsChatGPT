@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import ComparisonViewer from './ComparisonViewer';
 import QuoteReview from './QuoteReview';
 import { diffDesigns } from './domain/designDiff';
 import { estimateScope, type EstimateMode, type QualityTier } from './domain/estimating';
@@ -122,6 +123,8 @@ export default function ReviewPanel() {
             </div>
 
             <div className="review-grid">
+              <ComparisonViewer existing={review.existing} proposed={review.proposed} />
+
               <section className="review-card">
                 <h3>Design changes</h3>
                 {changeCount === 0 ? <p className="muted">No changes detected yet.</p> : <ul className="change-list">
