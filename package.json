@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "latest",
     "@vitejs/plugin-react": "latest",
+    "jspdf": "latest",
     "vite": "latest",
     "typescript": "latest",
     "react": "latest",
