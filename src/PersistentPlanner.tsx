@@ -234,8 +234,8 @@ export default function PersistentPlanner() {
       category: 'Custom',
       widthMm,
       depthMm,
-      xMm: snap(roomBounds.minX + roomWidth / 2 - widthMm / 2),
-      yMm: snap(roomBounds.minY + roomDepth / 2 - depthMm / 2),
+      xMm: Math.round(roomBounds.minX + roomWidth / 2 - widthMm / 2),
+      yMm: Math.round(roomBounds.minY + roomDepth / 2 - depthMm / 2),
       rotationDeg: 0,
     };
     setFixtures((items) => [...items, fixture]);
