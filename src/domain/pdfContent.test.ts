@@ -16,7 +16,7 @@ const region = { id: 'national-baseline', label: 'National baseline', factor: 1,
 
 const estimate: EstimateSummary = {
   mode: 'contractor', tier: 'standard', region,
-  items: [{ id: 'e', scopeId: 's', category: 'Plumbing', title: 'Relocate toilet', mode: 'contractor', tier: 'standard', cost: { low: 500, typical: 1000, high: 2000 }, provenance: 'regional-assumption', region, notes: [] }],
+  items: [{ id: 'e', scopeId: 's', kind: 'scope', category: 'Plumbing', title: 'Relocate toilet', mode: 'contractor', tier: 'standard', cost: { low: 500, typical: 1000, high: 2000 }, provenance: 'regional-assumption', region, notes: [] }],
   subtotal: { low: 500, typical: 1000, high: 2000 },
   contingency: { low: 75, typical: 150, high: 300 },
   total: { low: 575, typical: 1150, high: 2300 },
