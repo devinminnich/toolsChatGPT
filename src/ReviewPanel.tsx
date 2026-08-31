@@ -7,7 +7,7 @@ import { calculateMaterials } from './domain/materials';
 import { buildEstimatePdfSections, buildRfqPdfSections } from './domain/pdfContent';
 import { generateRfq } from './domain/rfq';
 import { inferScope, type ScopeSuggestion } from './domain/scopeInference';
-import { nowIso, type SavedContractorQuote, type ScopeDecisionStatus, type WorkspaceData } from './domain/project';
+import { nowIso, type SavedContractorQuote, type ScopeDecisionStatus, type ScopeEdit, type WorkspaceData } from './domain/project';
 import { WORKSPACE_SAVED_EVENT, workspacePersistence } from './lib/persistence';
 import { downloadDesignPdf } from './lib/designPdfExport';
 import { downloadPdf } from './lib/pdfExport';
@@ -50,7 +50,11 @@ export default function ReviewPanel() {
       ?? project.designs.find((design) => design.kind === 'proposed');
     if (!existing || !proposed) return { project, existing, proposed: null, diff: null, scope: [] as ScopeSuggestion[] };
     const diff = diffDesigns(existing, proposed);
-    const scope = inferScope(diff).map((item) => ({ ...item, status: project.review?.scopeStatuses[item.id] ?? item.status }));
+    const scope = inferScope(diff).map((item) => ({
+      ...item,
+      ...(project.review?.scopeEdits?.[item.id] ?? {}),
+      status: project.review?.scopeStatuses[item.id] ?? item.status,
+    }));
     return { project, existing, proposed, diff, scope };
   }, [workspace]);
 
@@ -62,7 +66,11 @@ export default function ReviewPanel() {
   }, [review?.project, review?.existing, review?.proposed, review?.scope, materials, estimate]);
   const changeCount = (review?.diff?.fixtureChanges.length ?? 0) + (review?.diff?.geometryChanged ? 1 : 0);
 
-  function persistProjectReview(scopeStatuses: Record<string, ScopeDecisionStatus>, contractorQuotes: SavedContractorQuote[]) {
+  function persistProjectReview(
+    scopeStatuses: Record<string, ScopeDecisionStatus>,
+    scopeEdits: Record<string, ScopeEdit>,
+    contractorQuotes: SavedContractorQuote[],
+  ) {
     if (!workspace || !review?.project) return;
     const now = nowIso();
     const next: WorkspaceData = {
@@ -73,7 +81,7 @@ export default function ReviewPanel() {
         projects: home.projects.map((project) => project.id !== review.project.id ? project : {
           ...project,
           updatedAt: now,
-          review: { scopeStatuses, contractorQuotes },
+          review: { scopeStatuses, scopeEdits, contractorQuotes },
         }),
       })),
     };
@@ -85,6 +93,19 @@ export default function ReviewPanel() {
     if (!review?.project) return;
     persistProjectReview(
       { ...(review.project.review?.scopeStatuses ?? {}), [scopeId]: status },
+      review.project.review?.scopeEdits ?? {},
+      review.project.review?.contractorQuotes ?? [],
+    );
+  }
+
+  function setScopeEdit(scopeId: string, patch: ScopeEdit) {
+    if (!review?.project) return;
+    persistProjectReview(
+      { ...(review.project.review?.scopeStatuses ?? {}), [scopeId]: 'edited' },
+      {
+        ...(review.project.review?.scopeEdits ?? {}),
+        [scopeId]: { ...(review.project.review?.scopeEdits?.[scopeId] ?? {}), ...patch },
+      },
       review.project.review?.contractorQuotes ?? [],
     );
   }
@@ -95,7 +116,11 @@ export default function ReviewPanel() {
     const nextQuotes = current.some((item) => item.id === quote.id)
       ? current.map((item) => item.id === quote.id ? quote : item)
       : [quote, ...current];
-    persistProjectReview(review.project.review?.scopeStatuses ?? {}, nextQuotes);
+    persistProjectReview(
+      review.project.review?.scopeStatuses ?? {},
+      review.project.review?.scopeEdits ?? {},
+      nextQuotes,
+    );
   }
 
   return (
@@ -137,9 +162,18 @@ export default function ReviewPanel() {
                 <h3>Suggested scope</h3>
                 {review.scope.length === 0 ? <p className="muted">Make a design change to generate scope.</p> : review.scope.map((item) => (
                   <div className={`scope-row status-${item.status}`} key={item.id}>
-                    <div><span className="scope-category">{item.category}</span><strong>{item.title}</strong><p>{item.description}</p></div>
+                    <div className="scope-copy">
+                      <span className="scope-category">{item.category}</span>
+                      {item.status === 'edited' ? <>
+                        <input className="scope-edit-title" value={item.title} onChange={(event) => setScopeEdit(item.id, { title: event.target.value })} />
+                        <textarea className="scope-edit-description" value={item.description} rows={2} onChange={(event) => setScopeEdit(item.id, { description: event.target.value })} />
+                      </> : <><strong>{item.title}</strong><p>{item.description}</p></>}
+                    </div>
                     <select value={item.status} onChange={(event) => setScopeStatus(item.id, event.target.value as ScopeDecisionStatus)}>
-                      <option value="suggested">Suggested</option><option value="accepted">Accept</option><option value="ignored">Ignore</option>
+                      <option value="suggested">Suggested</option>
+                      <option value="accepted">Accept</option>
+                      <option value="edited">Edit</option>
+                      <option value="ignored">Ignore</option>
                     </select>
                   </div>
                 ))}
