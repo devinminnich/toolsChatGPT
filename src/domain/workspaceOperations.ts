@@ -1,4 +1,5 @@
 import { createId, nowIso, type Point, type WorkspaceData } from './project';
+import { appendProjectActivity, createProjectActivity } from './projectActivity';
 
 export function createProjectInActiveHome(workspace: WorkspaceData, name: string, vertices: Point[]): WorkspaceData {
   const home = workspace.homes.find((item) => item.id === workspace.activeHomeId) ?? workspace.homes[0];
@@ -7,7 +8,7 @@ export function createProjectInActiveHome(workspace: WorkspaceData, name: string
   const projectId = createId('project');
   const designId = createId('design');
   const trimmedName = name.trim() || 'New Project';
-  const project = {
+  const project = appendProjectActivity({
     id: projectId,
     homeId: home.id,
     name: trimmedName,
@@ -23,7 +24,7 @@ export function createProjectInActiveHome(workspace: WorkspaceData, name: string
       createdAt: now,
       updatedAt: now,
     }],
-  };
+  }, createProjectActivity('project-created', 'Project created', trimmedName));
 
   return {
     ...workspace,
@@ -53,7 +54,13 @@ export function renameProject(workspace: WorkspaceData, projectId: string, name:
     updatedAt: now,
     homes: workspace.homes.map((home) => ({
       ...home,
-      projects: home.projects.map((project) => project.id !== projectId ? project : { ...project, name: trimmedName, updatedAt: now }),
+      projects: home.projects.map((project) => {
+        if (project.id !== projectId || project.name === trimmedName) return project;
+        return appendProjectActivity(
+          { ...project, name: trimmedName, updatedAt: now },
+          createProjectActivity('project-renamed', 'Project renamed', `${project.name} → ${trimmedName}`),
+        );
+      }),
     })),
   };
 }
