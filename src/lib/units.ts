@@ -21,6 +21,16 @@ function convertNumberToMm(number: number, unit: Exclude<DisplayUnit, 'ft-in'>):
   }
 }
 
+function valueForInchesInput(mm: number) {
+  const inches = mm / MM_PER_IN;
+  const nearestWhole = Math.round(inches);
+  // Canonical geometry is stored as integer millimeters. An inch-based edit can
+  // therefore land a fraction of a millimeter from a whole-inch value. Preserve
+  // the user's whole-inch intent instead of surfacing artifacts such as 11.97.
+  if (Math.abs(inches - nearestWhole) < 0.04) return String(nearestWhole);
+  return inches.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
+
 export function parseMeasurement(value: string, unit: DisplayUnit): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -76,7 +86,7 @@ export function formatMeasurement(mm: number, unit: DisplayUnit): string {
 export function valueForInput(mm: number, unit: DisplayUnit): string {
   switch (unit) {
     case 'ft-in': return formatMeasurement(mm, unit);
-    case 'in': return (mm / MM_PER_IN).toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    case 'in': return valueForInchesInput(mm);
     case 'ft': return (mm / MM_PER_FT).toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
     case 'mm': return String(Math.round(mm));
     case 'cm': return (mm / 10).toFixed(1).replace(/\.0$/, '');
