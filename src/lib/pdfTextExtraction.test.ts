@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { joinPdfTextItems } from './pdfTextExtraction';
+import { joinPdfTextItems } from '../domain/pdfText';
 
 describe('joinPdfTextItems', () => {
   it('preserves readable spaces and line endings from PDF text items', () => {
