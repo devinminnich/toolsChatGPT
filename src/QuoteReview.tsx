@@ -4,6 +4,7 @@ import { compareQuoteToRfq, type ContractorQuoteScopeItem, type NormalizedContra
 import { parseContractorQuoteText } from './domain/quoteParser';
 import type { RfqDocument } from './domain/rfq';
 import { downloadPdf } from './lib/pdfExport';
+import { extractPdfText } from './lib/pdfTextExtraction';
 
 function currency(value?: number) {
   if (value === undefined) return 'Not detected';
@@ -26,16 +27,43 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
   const [text, setText] = useState('');
   const [quote, setQuote] = useState<NormalizedContractorQuote | null>(savedQuotes[0] ?? null);
   const [savedMessage, setSavedMessage] = useState(false);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
   const comparison = useMemo(() => quote ? compareQuoteToRfq(rfq, quote) : null, [rfq, quote]);
 
   useEffect(() => {
     if (!quote && savedQuotes.length) setQuote(savedQuotes[0]);
   }, [savedQuotes.length]);
 
-  function analyze() {
-    if (!text.trim()) return;
-    setQuote(parseContractorQuoteText(text));
+  function analyzeText(sourceText = text) {
+    if (!sourceText.trim()) return;
+    setQuote(parseContractorQuoteText(sourceText));
     setSavedMessage(false);
+  }
+
+  async function importFile(file: File | undefined) {
+    if (!file) return;
+    setImportStatus(`Reading ${file.name}…`);
+    try {
+      let extracted = '';
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        extracted = await extractPdfText(file);
+      } else if (file.type.startsWith('text/') || file.name.toLowerCase().endsWith('.txt')) {
+        extracted = await file.text();
+      } else {
+        setImportStatus('This importer currently extracts PDF and text files. For an image/screenshot, paste the quote text for now.');
+        return;
+      }
+      if (!extracted.trim()) {
+        setImportStatus('No readable text was found in this file. It may be a scanned/image-only PDF.');
+        return;
+      }
+      setText(extracted);
+      analyzeText(extracted);
+      setImportStatus(`Imported ${file.name}. Review the extracted fields below.`);
+    } catch (error) {
+      console.error(error);
+      setImportStatus('The file could not be read. You can still paste the quote text manually.');
+    }
   }
 
   function patchQuote(patch: Partial<NormalizedContractorQuote>) {
@@ -64,9 +92,9 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
       <div className="quote-heading">
         <div>
           <h3>Contractor quote comparison</h3>
-          <p className="muted">Paste quote text, review the extraction, correct it if needed, then save the normalized quote to the project.</p>
+          <p className="muted">Upload a PDF/text proposal or paste quote text, review the extraction, correct it if needed, then save the normalized quote to the project.</p>
         </div>
-        {quote && <button type="button" className="secondary-button" onClick={() => { setQuote(null); setText(''); setSavedMessage(false); }}>New quote</button>}
+        {quote && <button type="button" className="secondary-button" onClick={() => { setQuote(null); setText(''); setSavedMessage(false); setImportStatus(null); }}>New quote</button>}
       </div>
 
       {savedQuotes.length > 0 && <label className="saved-quote-picker">
@@ -78,9 +106,17 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
       </label>}
 
       {!quote ? <>
+        <label className="quote-file-import">
+          <span>Import contractor quote</span>
+          <input type="file" accept="application/pdf,text/plain,.pdf,.txt" onChange={(event) => void importFile(event.target.files?.[0])} />
+          <small>PDFs with selectable text and plain-text files are supported directly.</small>
+        </label>
+        {importStatus && <p className="import-status">{importStatus}</p>}
+        <div className="quote-import-separator"><span>or paste text</span></div>
         <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Paste contractor estimate / proposal text here…" rows={8} />
-        <button type="button" className="export-button" disabled={!text.trim()} onClick={analyze}>Analyze quote</button>
+        <button type="button" className="export-button" disabled={!text.trim()} onClick={() => analyzeText()}>Analyze quote</button>
       </> : <>
+        {importStatus && <p className="import-status">{importStatus}</p>}
         <div className="quote-edit-grid">
           <label><span>Contractor</span><input value={quote.contractorName} onChange={(event) => patchQuote({ contractorName: event.target.value })} /></label>
           <label><span>Total</span><input inputMode="decimal" value={quote.total ?? ''} onChange={(event) => patchQuote({ total: numberFromInput(event.target.value) })} /></label>
