@@ -46,6 +46,15 @@ button { cursor: pointer; }
 .draw-status { margin-top: 14px; display: grid; gap: 8px; padding: 12px; background: var(--surface); border-radius: 10px; font-size: .78rem; color: var(--muted); }
 .draw-status strong { color: var(--navy); }
 
+/* Room geometry belongs to the project. Design mode arranges objects inside it. */
+.left-panel > .mode-buttons { display: none; }
+.left-panel > h2:first-child { margin-bottom: 4px; }
+.left-panel > h2:first-child::after { content: 'Project boundary'; display: block; margin-top: 6px; font-size: .74rem; font-weight: 500; color: var(--muted); }
+.left-panel > h2:first-child + .mode-buttons + .helper { display: none; }
+.left-panel > h2:nth-of-type(2),
+.left-panel > h2:nth-of-type(2) + .field-grid,
+.left-panel > h2:nth-of-type(2) + .field-grid + .primary-action { display: none; }
+
 .canvas-panel { min-width: 0; display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
 .canvas-toolbar { min-height: 48px; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 0 14px; background: white; border-bottom: 1px solid var(--line); font-size: .78rem; color: var(--muted); }
 .canvas-controls { display: flex; gap: 5px; }
@@ -53,16 +62,16 @@ button { cursor: pointer; }
 .design-canvas { width: 100%; flex: 1; min-height: 460px; touch-action: none; user-select: none; background: var(--surface); }
 .design-canvas.mode-pan { cursor: grab; }
 .design-canvas.mode-pan:active { cursor: grabbing; }
-.design-canvas.mode-draw { cursor: crosshair; }
+.design-canvas.mode-draw { cursor: default; }
 .grid-line { stroke: #d9e2ec; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .canvas-background { fill-opacity: 1; }
 .room-fill { fill: #fff; pointer-events: none; }
-.wall-line { fill: none; stroke: var(--navy); stroke-width: 12; vector-effect: non-scaling-stroke; cursor: pointer; }
-.wall-line.selected { stroke: var(--accent); stroke-width: 16; }
+.wall-line { fill: none; stroke: var(--navy); stroke-width: 12; vector-effect: non-scaling-stroke; pointer-events: none; cursor: default; }
+.wall-line.selected { stroke: var(--navy); stroke-width: 12; }
 .wall-dimension { paint-order: stroke; stroke: white; stroke-width: 18; stroke-linejoin: round; }
 .dimension-label { fill: var(--navy-2); font-size: 95px; font-weight: 600; }
-.vertex-handle { fill: white; stroke: var(--accent); stroke-width: 16; vector-effect: non-scaling-stroke; cursor: grab; }
-.vertex-handle:active { cursor: grabbing; }
+.vertex-handle { display: none; pointer-events: none; }
+.draft-shape { display: none; }
 .draft-shape polyline { fill: none; stroke: var(--accent); stroke-width: 12; vector-effect: non-scaling-stroke; stroke-dasharray: 20 12; }
 .draft-shape circle { fill: white; stroke: var(--accent); stroke-width: 14; vector-effect: non-scaling-stroke; pointer-events: none; }
 .draft-shape .draft-start { fill: var(--accent-soft); stroke-width: 20; }
@@ -77,6 +86,12 @@ button { cursor: pointer; }
 .helper, .empty-properties p { color: var(--muted); font-size: .82rem; line-height: 1.45; }
 .empty-properties { padding-top: 20px; }
 .mobile-actions { display: none; }
+
+.project-room-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.project-room-fields label { display: grid; gap: 4px; color: var(--muted); font-size: .72rem; }
+.project-room-fields input { width: 100%; min-width: 0; min-height: 40px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font-size: 16px; }
+.project-room-note { width: 100%; margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.35; }
+.project-setup-form { align-items: end; }
 
 @media (max-width: 900px) {
   .workspace { grid-template-columns: 205px minmax(0,1fr); }
@@ -98,16 +113,15 @@ button { cursor: pointer; }
   .canvas-controls button { min-width: 40px; padding-inline: 7px; }
   .design-canvas { min-height: 0; }
   .dimension-label { font-size: 80px; }
-  .vertex-handle { r: 38px; }
   .fixture rect { stroke-width: 14; }
   .fixture.selected rect { stroke-width: 16; }
   .properties-panel { position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: 100%; max-height: 48vh; border-radius: 16px 16px 0 0; border: 1px solid var(--line); padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
-  .mobile-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: white; }
+  .mobile-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: white; }
+  .mobile-actions button:nth-child(2) { display: none; }
   .mobile-actions button { font-size: .78rem; padding-inline: 4px; }
+  .project-room-fields { grid-template-columns: 1fr 1fr; }
 }
 
 @media (hover: hover) and (pointer: fine) {
   .fixture:hover rect { stroke: #087d6f; }
-  .wall-line:hover { stroke: var(--accent); }
-  .vertex-handle:hover { fill: var(--accent-soft); }
 }
