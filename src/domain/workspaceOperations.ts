@@ -6,10 +6,12 @@ function createProject(homeId: string, name: string, vertices: Point[]) {
   const projectId = createId('project');
   const designId = createId('design');
   const trimmedName = name.trim() || 'New Project';
+  const roomVertices = vertices.map((point) => ({ ...point }));
   const project = appendProjectActivity({
     id: projectId,
     homeId,
     name: trimmedName,
+    roomVertices,
     activeDesignId: designId,
     createdAt: now,
     updatedAt: now,
@@ -17,7 +19,7 @@ function createProject(homeId: string, name: string, vertices: Point[]) {
       id: designId,
       name: 'Existing',
       kind: 'existing' as const,
-      vertices: vertices.map((point) => ({ ...point })),
+      vertices: roomVertices.map((point) => ({ ...point })),
       fixtures: [],
       createdAt: now,
       updatedAt: now,
