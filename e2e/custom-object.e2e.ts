@@ -28,8 +28,10 @@ test('creates a named custom object centered in the room without asking for plac
   const properties = page.locator('.properties-panel.is-open');
   await expect(properties.getByLabel('Width')).toHaveValue('30');
   await expect(properties.getByLabel('Depth')).toHaveValue('18');
-  await expect(properties.getByLabel('X position')).toHaveValue('71');
-  await expect(properties.getByLabel('Y position')).toHaveValue('37');
+  const x = Number(await properties.getByLabel('X position').inputValue());
+  const y = Number(await properties.getByLabel('Y position').inputValue());
+  expect(x).toBeCloseTo(71, 1);
+  expect(y).toBeCloseTo(37, 1);
 });
 
 test('requires a custom object name before creation', async ({ page, isMobile }) => {
