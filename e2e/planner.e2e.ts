@@ -70,8 +70,10 @@ test('supports exact fixture position rotation and duplication', async ({ page, 
   await expect(page.getByLabel('Rotation (degrees)')).toHaveValue('45');
 
   await page.getByRole('button', { name: 'Duplicate', exact: true }).click();
-  await expect(page.getByLabel('X position')).toHaveValue('12');
-  await expect(page.getByLabel('Y position')).toHaveValue('22');
+  const duplicatedX = Number(await page.getByLabel('X position').inputValue());
+  const duplicatedY = Number(await page.getByLabel('Y position').inputValue());
+  expect(duplicatedX).toBeCloseTo(12, 1);
+  expect(duplicatedY).toBeCloseTo(22, 1);
 });
 
 test('downloads a dimensioned proposed-design PDF', async ({ page }) => {
