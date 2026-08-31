@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
+import { workspacePersistence } from './lib/persistence';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 export default function AuthBar() {
@@ -10,7 +11,10 @@ export default function AuthBar() {
   const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
 
   useEffect(() => {
-    const onOnline = () => setOnline(true);
+    const onOnline = () => {
+      setOnline(true);
+      void workspacePersistence.sync();
+    };
     const onOffline = () => setOnline(false);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
@@ -25,6 +29,7 @@ export default function AuthBar() {
     supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) void workspacePersistence.sync();
     });
     return () => listener.subscription.unsubscribe();
   }, []);
