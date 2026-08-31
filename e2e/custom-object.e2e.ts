@@ -1,4 +1,16 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function openCustomObjectCreator(page: Page, isMobile: boolean) {
+  if (isMobile) {
+    await page.getByRole('button', { name: '+ Object', exact: true }).click();
+    const library = page.getByRole('dialog', { name: 'Object library' });
+    await expect(library).toBeVisible();
+    await library.getByRole('button', { name: '+ Custom object', exact: true }).click();
+    await expect(library).toHaveCount(0);
+  } else {
+    await page.getByRole('button', { name: '+ Custom object', exact: true }).click();
+  }
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./');
@@ -9,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 
 test('creates a named custom object in the current view without requiring placement coordinates', async ({ page, isMobile }) => {
   await page.getByLabel('Units').selectOption('in');
-  await page.getByRole('button', { name: isMobile ? '+ Object' : '+ Custom object', exact: true }).click();
+  await openCustomObjectCreator(page, isMobile);
 
   const dialog = page.getByRole('dialog', { name: 'Create custom object' });
   await expect(dialog).toBeVisible();
@@ -37,7 +49,7 @@ test('creates a named custom object in the current view without requiring placem
 });
 
 test('requires a custom object name before creation', async ({ page, isMobile }) => {
-  await page.getByRole('button', { name: isMobile ? '+ Object' : '+ Custom object', exact: true }).click();
+  await openCustomObjectCreator(page, isMobile);
   const dialog = page.getByRole('dialog', { name: 'Create custom object' });
   await dialog.getByRole('button', { name: 'Create object' }).click();
   await expect(dialog.getByRole('alert')).toHaveText('Give the object a name.');
