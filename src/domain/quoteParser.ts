@@ -24,18 +24,10 @@ function classifyScopeLine(line: string): ContractorQuoteScopeItem | null {
   if (cleaned.length < 5) return null;
   const lower = cleaned.toLowerCase();
   if (/^(total|subtotal|tax|deposit|payment|date|quote|estimate|proposal|customer|address)\b/.test(lower)) return null;
-  if (/\b(excluded|exclusion|not included|by owner|owner responsible)\b/.test(lower)) {
-    return { title: cleaned, status: 'excluded' };
-  }
-  if (/\b(optional|option|alternate|add-on|add on)\b/.test(lower)) {
-    return { title: cleaned, status: 'optional' };
-  }
-  if (/\ballowance\b/.test(lower)) {
-    return { title: cleaned, status: 'allowance' };
-  }
-  if (/\b(remove|demo|demolish|install|replace|relocate|move|provide|repair|paint|tile|plumb|wire|frame|drywall|waterproof|grout|permit|dispose)\b/.test(lower)) {
-    return { title: cleaned, status: 'included' };
-  }
+  if (/\b(excluded|exclusion|not included|by owner|owner responsible)\b/.test(lower)) return { title: cleaned, status: 'excluded' };
+  if (/\b(optional|option|alternate|add-on|add on)\b/.test(lower)) return { title: cleaned, status: 'optional' };
+  if (/\ballowance\b/.test(lower)) return { title: cleaned, status: 'allowance' };
+  if (/\b(remove|demo|demolish|install|replace|relocate|move|provide|repair|paint|tile|plumb|wire|frame|drywall|waterproof|grout|permit|dispose)\b/.test(lower)) return { title: cleaned, status: 'included' };
   return null;
 }
 
@@ -65,5 +57,7 @@ export function parseContractorQuoteText(text: string, id = `quote:${Date.now()}
     scope,
     exclusions,
     notes: ['Automatically normalized from pasted quote text. Review extracted fields before relying on comparison results.'],
+    sourceText: text,
+    importedAt: new Date().toISOString(),
   };
 }
