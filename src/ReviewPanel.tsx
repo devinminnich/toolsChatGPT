@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { diffDesigns } from './domain/designDiff';
 import { estimateScope, type EstimateMode, type QualityTier } from './domain/estimating';
 import { calculateMaterials } from './domain/materials';
+import { buildEstimatePdfSections, buildRfqPdfSections } from './domain/pdfContent';
 import { generateRfq } from './domain/rfq';
 import { inferScope, type ScopeSuggestion } from './domain/scopeInference';
 import type { WorkspaceData } from './domain/project';
 import { WORKSPACE_SAVED_EVENT, workspacePersistence } from './lib/persistence';
+import { downloadPdf } from './lib/pdfExport';
 import { formatMeasurement } from './lib/units';
 
 function currency(value: number) {
@@ -74,10 +76,7 @@ export default function ReviewPanel() {
         ) : (
           <>
             <div className="review-heading">
-              <div>
-                <p className="eyebrow">Comparison</p>
-                <h2>{review.existing.name} → {review.proposed.name}</h2>
-              </div>
+              <div><p className="eyebrow">Comparison</p><h2>{review.existing.name} → {review.proposed.name}</h2></div>
               <span className="review-count">{changeCount} detected</span>
             </div>
 
@@ -94,15 +93,9 @@ export default function ReviewPanel() {
                 <h3>Suggested scope</h3>
                 {review.scope.length === 0 ? <p className="muted">Make a design change to generate scope.</p> : review.scope.map((item) => (
                   <div className={`scope-row status-${item.status}`} key={item.id}>
-                    <div>
-                      <span className="scope-category">{item.category}</span>
-                      <strong>{item.title}</strong>
-                      <p>{item.description}</p>
-                    </div>
+                    <div><span className="scope-category">{item.category}</span><strong>{item.title}</strong><p>{item.description}</p></div>
                     <select value={item.status} onChange={(event) => setScopeOverrides((current) => ({ ...current, [item.id]: event.target.value as ScopeSuggestion['status'] }))}>
-                      <option value="suggested">Suggested</option>
-                      <option value="accepted">Accept</option>
-                      <option value="ignored">Ignore</option>
+                      <option value="suggested">Suggested</option><option value="accepted">Accept</option><option value="ignored">Ignore</option>
                     </select>
                   </div>
                 ))}
@@ -112,11 +105,7 @@ export default function ReviewPanel() {
                 <h3>Material takeoff</h3>
                 {materials.length === 0 ? <p className="muted">Add supported fixtures such as a shower, toilet, vanity, or sink to generate material planning quantities.</p> : <div className="material-lines">
                   {materials.map((item) => <div className="material-row" key={item.id}>
-                    <div>
-                      <strong>{item.name}</strong>
-                      <span>{item.basis}</span>
-                      {item.assumption && <small>{item.assumption}</small>}
-                    </div>
+                    <div><strong>{item.name}</strong><span>{item.basis}</span>{item.assumption && <small>{item.assumption}</small>}</div>
                     <b>{item.quantity} {item.unit}</b>
                   </div>)}
                 </div>}
@@ -124,49 +113,27 @@ export default function ReviewPanel() {
 
               <section className="review-card estimate-card">
                 <div className="estimate-controls">
-                  <div>
-                    <h3>Preliminary estimate</h3>
-                    <p className="muted">Regional assumptions; not a contractor quote.</p>
-                  </div>
+                  <div><h3>Preliminary estimate</h3><p className="muted">Regional assumptions; not a contractor quote.</p></div>
                   <div className="estimate-selects">
-                    <select value={mode} onChange={(event) => setMode(event.target.value as EstimateMode)}>
-                      <option value="contractor">Contractor</option>
-                      <option value="diy">DIY</option>
-                    </select>
-                    <select value={tier} onChange={(event) => setTier(event.target.value as QualityTier)}>
-                      <option value="budget">Budget</option>
-                      <option value="standard">Standard</option>
-                      <option value="premium">Premium</option>
-                    </select>
+                    <select value={mode} onChange={(event) => setMode(event.target.value as EstimateMode)}><option value="contractor">Contractor</option><option value="diy">DIY</option></select>
+                    <select value={tier} onChange={(event) => setTier(event.target.value as QualityTier)}><option value="budget">Budget</option><option value="standard">Standard</option><option value="premium">Premium</option></select>
                   </div>
                 </div>
                 {estimate && <>
                   <div className="estimate-range">
-                    <div><span>Low</span><strong>{currency(estimate.total.low)}</strong></div>
-                    <div><span>Typical</span><strong>{currency(estimate.total.typical)}</strong></div>
-                    <div><span>High</span><strong>{currency(estimate.total.high)}</strong></div>
+                    <div><span>Low</span><strong>{currency(estimate.total.low)}</strong></div><div><span>Typical</span><strong>{currency(estimate.total.typical)}</strong></div><div><span>High</span><strong>{currency(estimate.total.high)}</strong></div>
                   </div>
-                  <details>
-                    <summary>Estimate breakdown ({estimate.items.length} items)</summary>
-                    <div className="estimate-lines">
-                      {estimate.items.map((item) => <div key={item.id}><span>{item.title}</span><strong>{currency(item.cost.typical)}</strong></div>)}
-                      <div><span>Contingency</span><strong>{currency(estimate.contingency.typical)}</strong></div>
-                    </div>
-                  </details>
+                  <button className="export-button" type="button" onClick={() => downloadPdf(`${review.project.name} ${mode} estimate`, buildEstimatePdfSections(review.project.name, estimate))}>Download estimate PDF</button>
+                  <details><summary>Estimate breakdown ({estimate.items.length} items)</summary><div className="estimate-lines">{estimate.items.map((item) => <div key={item.id}><span>{item.title}</span><strong>{currency(item.cost.typical)}</strong></div>)}<div><span>Contingency</span><strong>{currency(estimate.contingency.typical)}</strong></div></div></details>
                 </>}
               </section>
 
               {rfq && <section className="review-card rfq-card">
                 <div className="rfq-heading"><div><h3>Contractor RFQ preview</h3><p className="muted">Built from the current proposed design and non-ignored scope.</p></div><span>{rfq.scope.length} scope items</span></div>
                 <p>{rfq.overview}</p>
-                <details>
-                  <summary>Requested pricing breakdown</summary>
-                  <ul>{rfq.pricingRequest.map((line) => <li key={line}>{line}</li>)}</ul>
-                </details>
-                <details>
-                  <summary>Contractor questions</summary>
-                  <ul>{rfq.contractorQuestions.map((line) => <li key={line}>{line}</li>)}</ul>
-                </details>
+                <button className="export-button" type="button" onClick={() => downloadPdf(`${rfq.projectName} RFQ`, buildRfqPdfSections(rfq))}>Download RFQ PDF</button>
+                <details><summary>Requested pricing breakdown</summary><ul>{rfq.pricingRequest.map((line) => <li key={line}>{line}</li>)}</ul></details>
+                <details><summary>Contractor questions</summary><ul>{rfq.contractorQuestions.map((line) => <li key={line}>{line}</li>)}</ul></details>
               </section>}
             </div>
           </>
