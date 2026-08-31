@@ -30,12 +30,7 @@
   white-space: nowrap;
 }
 
-.design-tabs button.active {
-  background: #111827;
-  color: #fff;
-  border-color: #111827;
-}
-
+.design-tabs button.active { background: #111827; color: #fff; border-color: #111827; }
 .design-tabs .new-option { border-style: dashed; }
 .review-drawer { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(960px, calc(100vw - 28px)); z-index: 20; border: 1px solid #cbd5e1; border-radius: 14px; background: #fff; box-shadow: 0 18px 46px rgba(15, 23, 42, .2); overflow: hidden; }
 .review-toggle { width: 100%; min-height: 50px; border: 0; background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; text-align: left; }
@@ -44,6 +39,7 @@
 .review-content { max-height: min(68vh, 720px); overflow: auto; padding: 18px; border-top: 1px solid #e5e7eb; }
 .review-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; margin-bottom: 14px; }
 .review-heading h2 { margin: 3px 0 0; font-size: 1.15rem; }
+.review-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 .review-count { border-radius: 999px; padding: 5px 9px; background: #f1f5f9; color: #475569; font-size: .78rem; }
 .review-grid { display: grid; gap: 12px; }
 .review-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; background: #fff; }
@@ -89,6 +85,10 @@
 .rfq-card > p { color: #475569; font-size: .8rem; line-height: 1.5; }
 .rfq-card ul, .quote-card ul { padding-left: 20px; font-size: .78rem; color: #475569; line-height: 1.5; }
 .quote-card textarea { width: 100%; resize: vertical; min-height: 150px; margin: 8px 0 10px; border: 1px solid #cbd5e1; border-radius: 9px; padding: 10px; font: inherit; font-size: .82rem; line-height: 1.4; }
+.saved-quote-picker { display: grid; gap: 4px; margin: 10px 0; font-size: .75rem; color: #64748b; }
+.saved-quote-picker select { min-height: 40px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 8px; background: #fff; }
+.quote-save-row { display: flex; gap: 10px; align-items: center; margin: 10px 0; }
+.quote-save-row span { font-size: .75rem; color: #166534; font-weight: 700; }
 .quote-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
 .quote-summary div { background: #f8fafc; border-radius: 9px; padding: 9px; display: grid; gap: 3px; }
 .quote-summary span { font-size: .67rem; color: #64748b; }
@@ -113,6 +113,8 @@
   .design-tabs button { min-height: 42px; font-size: .8rem; }
   .review-drawer { left: 0; right: 0; bottom: 66px; transform: none; width: 100%; border-radius: 14px 14px 0 0; }
   .review-content { max-height: 62vh; padding: 12px; }
+  .review-heading { display: grid; }
+  .review-heading-actions { justify-content: flex-start; }
   .scope-row, .material-row, .comparison-row { grid-template-columns: 1fr; }
   .estimate-controls { display: grid; }
   .estimate-range { grid-template-columns: 1fr 1fr 1fr; }
