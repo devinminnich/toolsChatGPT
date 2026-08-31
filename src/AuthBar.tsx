@@ -7,6 +7,18 @@ export default function AuthBar() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [online, setOnline] = useState(() => typeof navigator === 'undefined' ? true : navigator.onLine);
+
+  useEffect(() => {
+    const onOnline = () => setOnline(true);
+    const onOffline = () => setOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -19,7 +31,7 @@ export default function AuthBar() {
 
   async function sendMagicLink(event: React.FormEvent) {
     event.preventDefault();
-    if (!supabase || !email.trim()) return;
+    if (!supabase || !email.trim() || !online) return;
     setBusy(true);
     setMessage('');
     const { error } = await supabase.auth.signInWithOtp({
@@ -36,6 +48,10 @@ export default function AuthBar() {
     await supabase.auth.signOut();
     setBusy(false);
     setMessage('Signed out. Local projects remain on this device.');
+  }
+
+  if (!online) {
+    return <div className="auth-bar auth-local"><span>Offline</span><span>Changes are stored on this device and will sync after reconnecting.</span></div>;
   }
 
   if (!isSupabaseConfigured) {
