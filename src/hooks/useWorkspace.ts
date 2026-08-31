@@ -17,6 +17,7 @@ function createInitialWorkspace(vertices: Point[]): WorkspaceData {
   const homeId = createId('home');
   const projectId = createId('project');
   const designId = createId('design');
+  const roomVertices = vertices.map((point) => ({ ...point }));
   return {
     schemaVersion: 1,
     activeHomeId: homeId,
@@ -32,6 +33,7 @@ function createInitialWorkspace(vertices: Point[]): WorkspaceData {
         id: projectId,
         homeId,
         name: 'Primary Bathroom',
+        roomVertices,
         activeDesignId: designId,
         createdAt: now,
         updatedAt: now,
@@ -39,7 +41,7 @@ function createInitialWorkspace(vertices: Point[]): WorkspaceData {
           id: designId,
           name: 'Existing',
           kind: 'existing',
-          vertices,
+          vertices: roomVertices.map((point) => ({ ...point })),
           fixtures: [],
           createdAt: now,
           updatedAt: now,
@@ -100,6 +102,10 @@ export function useWorkspace(initialVertices: Point[]) {
     () => activeProject?.designs.find((design) => design.id === activeProject.activeDesignId) ?? activeProject?.designs[0],
     [activeProject],
   );
+  const roomVertices = useMemo(
+    () => activeProject?.roomVertices ?? activeProject?.designs[0]?.vertices ?? initialVertices,
+    [activeProject, initialVertices],
+  );
 
   function mutateActiveProject(mutator: (project: NonNullable<typeof activeProject>) => NonNullable<typeof activeProject>) {
     if (!activeHome || !activeProject) return;
@@ -114,33 +120,54 @@ export function useWorkspace(initialVertices: Point[]) {
     }));
   }
 
-  function updateActiveDesign(vertices: Point[], fixtures: FixtureInstance[]) {
+  function updateActiveDesign(_vertices: Point[], fixtures: FixtureInstance[]) {
     if (!activeDesign) return;
-    mutateActiveProject((project) => ({
-      ...project,
-      updatedAt: nowIso(),
-      designs: project.designs.map((design) => design.id === activeDesign.id ? {
-        ...design,
-        vertices,
-        fixtures,
+    mutateActiveProject((project) => {
+      const canonicalRoom = project.roomVertices ?? project.designs[0]?.vertices ?? initialVertices;
+      return {
+        ...project,
+        roomVertices: canonicalRoom.map((point) => ({ ...point })),
         updatedAt: nowIso(),
-      } : design),
-    }));
+        designs: project.designs.map((design) => design.id === activeDesign.id ? {
+          ...design,
+          vertices: canonicalRoom.map((point) => ({ ...point })),
+          fixtures,
+          updatedAt: nowIso(),
+        } : design),
+      };
+    });
+  }
+
+  function updateProjectRoom(vertices: Point[]) {
+    const nextRoom = vertices.map((point) => ({ ...point }));
+    const detail = `${nextRoom.length} wall${nextRoom.length === 1 ? '' : 's'}`;
+    mutateActiveProject((project) => appendProjectActivity({
+      ...project,
+      roomVertices: nextRoom,
+      updatedAt: nowIso(),
+      designs: project.designs.map((design) => ({
+        ...design,
+        vertices: nextRoom.map((point) => ({ ...point })),
+        updatedAt: nowIso(),
+      })),
+    }, createProjectActivity('room-updated', 'Project room updated', detail)));
   }
 
   function switchDesign(designId: string) {
     mutateActiveProject((project) => ({ ...project, activeDesignId: designId, updatedAt: nowIso() }));
   }
 
-  function duplicateActiveDesign(vertices = activeDesign?.vertices ?? [], fixtures = activeDesign?.fixtures ?? []) {
+  function duplicateActiveDesign(vertices = roomVertices, fixtures = activeDesign?.fixtures ?? []) {
     if (!activeDesign || !activeProject) return null;
     const existingProposalCount = activeProject.designs.filter((design) => design.kind === 'proposed').length;
     const name = `Option ${String.fromCharCode(65 + existingProposalCount)}`;
-    const sourceSnapshot = { ...activeDesign, vertices, fixtures, updatedAt: nowIso() };
+    const canonicalRoom = activeProject.roomVertices ?? vertices;
+    const sourceSnapshot = { ...activeDesign, vertices: canonicalRoom.map((point) => ({ ...point })), fixtures, updatedAt: nowIso() };
     const next = cloneAsProposed(sourceSnapshot, name);
     const activity = createProjectActivity('proposal-created', 'Proposed design created', `${sourceSnapshot.name} → ${next.name}`);
     mutateActiveProject((project) => appendProjectActivity({
       ...project,
+      roomVertices: canonicalRoom.map((point) => ({ ...point })),
       activeDesignId: next.id,
       updatedAt: nowIso(),
       designs: [
@@ -218,9 +245,11 @@ export function useWorkspace(initialVertices: Point[]) {
     activeHome,
     activeProject,
     activeDesign,
+    roomVertices,
     status,
     hydrated,
     updateActiveDesign,
+    updateProjectRoom,
     switchDesign,
     duplicateActiveDesign,
     saveObjectDefinition,
