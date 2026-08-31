@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { diffDesigns } from './domain/designDiff';
 import { estimateScope, type EstimateMode, type QualityTier } from './domain/estimating';
+import { calculateMaterials } from './domain/materials';
+import { generateRfq } from './domain/rfq';
 import { inferScope, type ScopeSuggestion } from './domain/scopeInference';
 import type { WorkspaceData } from './domain/project';
 import { WORKSPACE_SAVED_EVENT, workspacePersistence } from './lib/persistence';
@@ -49,6 +51,11 @@ export default function ReviewPanel() {
   }, [workspace, scopeOverrides]);
 
   const estimate = useMemo(() => review?.scope ? estimateScope(review.scope, mode, tier) : null, [review?.scope, mode, tier]);
+  const materials = useMemo(() => review?.proposed ? calculateMaterials(review.proposed) : [], [review?.proposed]);
+  const rfq = useMemo(() => {
+    if (!review?.project || !review.existing || !review.proposed) return null;
+    return generateRfq(review.project, review.existing, review.proposed, review.scope, materials, estimate ?? undefined);
+  }, [review?.project, review?.existing, review?.proposed, review?.scope, materials, estimate]);
   const changeCount = (review?.diff?.fixtureChanges.length ?? 0) + (review?.diff?.geometryChanged ? 1 : 0);
 
   return (
@@ -62,7 +69,7 @@ export default function ReviewPanel() {
         {!review?.proposed ? (
           <div className="review-empty">
             <h2>Existing vs Proposed</h2>
-            <p>Create a Proposed option from the editor, make changes, then return here to review detected changes, suggested scope, and preliminary cost ranges.</p>
+            <p>Create a Proposed option from the editor, make changes, then return here to review detected changes, suggested scope, materials, preliminary costs, and the contractor RFQ.</p>
           </div>
         ) : (
           <>
@@ -101,6 +108,20 @@ export default function ReviewPanel() {
                 ))}
               </section>
 
+              <section className="review-card materials-card">
+                <h3>Material takeoff</h3>
+                {materials.length === 0 ? <p className="muted">Add supported fixtures such as a shower, toilet, vanity, or sink to generate material planning quantities.</p> : <div className="material-lines">
+                  {materials.map((item) => <div className="material-row" key={item.id}>
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>{item.basis}</span>
+                      {item.assumption && <small>{item.assumption}</small>}
+                    </div>
+                    <b>{item.quantity} {item.unit}</b>
+                  </div>)}
+                </div>}
+              </section>
+
               <section className="review-card estimate-card">
                 <div className="estimate-controls">
                   <div>
@@ -134,6 +155,19 @@ export default function ReviewPanel() {
                   </details>
                 </>}
               </section>
+
+              {rfq && <section className="review-card rfq-card">
+                <div className="rfq-heading"><div><h3>Contractor RFQ preview</h3><p className="muted">Built from the current proposed design and non-ignored scope.</p></div><span>{rfq.scope.length} scope items</span></div>
+                <p>{rfq.overview}</p>
+                <details>
+                  <summary>Requested pricing breakdown</summary>
+                  <ul>{rfq.pricingRequest.map((line) => <li key={line}>{line}</li>)}</ul>
+                </details>
+                <details>
+                  <summary>Contractor questions</summary>
+                  <ul>{rfq.contractorQuestions.map((line) => <li key={line}>{line}</li>)}</ul>
+                </details>
+              </section>}
             </div>
           </>
         )}
