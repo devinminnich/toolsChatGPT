@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { buildEstimatePdfSections, buildRfqPdfSections } from './pdfContent';
+import { buildEstimatePdfSections, buildQuoteComparisonPdfSections, buildRfqPdfSections } from './pdfContent';
 import type { EstimateSummary } from './estimating';
+import type { NormalizedContractorQuote, QuoteComparison } from './quoteComparison';
 import type { RfqDocument } from './rfq';
 
 const rfq: RfqDocument = {
@@ -19,6 +20,17 @@ const estimate: EstimateSummary = {
   total: { low: 575, typical: 1150, high: 2300 },
 };
 
+const quote: NormalizedContractorQuote = {
+  id: 'q', contractorName: 'ABC Remodeling', total: 12000, labor: 7000, materials: 5000,
+  scope: [{ title: 'Relocate toilet plumbing', status: 'included' }], exclusions: ['Painting excluded'], notes: [], importedAt: '2026-08-31T00:00:00Z',
+};
+
+const comparison: QuoteComparison = {
+  contractorName: 'ABC Remodeling', quoteTotal: 12000,
+  lines: [{ rfqScopeId: 's', requestedTitle: 'Relocate toilet', requestedCategory: 'Plumbing', status: 'included', matchedQuoteItem: quote.scope[0] }],
+  counts: { included: 1, excluded: 0, ambiguous: 0, 'not-mentioned': 0 }, exclusions: quote.exclusions,
+};
+
 describe('PDF content builders', () => {
   it('includes RFQ scope and material sections', () => {
     const sections = buildRfqPdfSections(rfq);
@@ -30,5 +42,12 @@ describe('PDF content builders', () => {
     const sections = buildEstimatePdfSections('Primary Bathroom', estimate);
     expect(sections[0].lines).toContain('Typical: $1,150');
     expect(sections[1].lines.some((line) => line.includes('Relocate toilet'))).toBe(true);
+  });
+
+  it('includes quote coverage and matched RFQ scope', () => {
+    const sections = buildQuoteComparisonPdfSections('Primary Bathroom', quote, comparison);
+    expect(sections[0].lines).toContain('Included requested items: 1');
+    expect(sections[1].lines.some((line) => line.includes('Relocate toilet'))).toBe(true);
+    expect(sections[2].lines).toContain('Painting excluded');
   });
 });
