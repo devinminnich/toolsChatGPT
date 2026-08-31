@@ -4,11 +4,11 @@ async function addDefaultObject(page: Page, isMobile: boolean, name: string) {
   if (isMobile) {
     await page.getByRole('button', { name: '+ Object', exact: true }).click();
     const library = page.getByRole('dialog', { name: 'Object library' });
-    await library.getByText('Bathroom & plumbing', { exact: true }).click();
+    await library.locator('.object-group summary').filter({ hasText: 'Bathroom & plumbing' }).click();
     await library.getByRole('button', { name: `+ ${name}`, exact: true }).click();
     await expect(library).toHaveCount(0);
   } else {
-    await page.getByText('Bathroom & plumbing', { exact: true }).click();
+    await page.locator('.object-group summary').filter({ hasText: 'Bathroom & plumbing' }).click();
     await page.getByRole('button', { name: `+ ${name}`, exact: true }).click();
   }
 }
