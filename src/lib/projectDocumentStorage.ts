@@ -1,15 +1,7 @@
+import type { StoredProjectDocumentRef } from '../domain/project';
 import { supabase } from './supabase';
 
-export const PROJECT_DOCUMENT_BUCKET = 'project-documents';
-
-export type StoredProjectDocument = {
-  bucket: typeof PROJECT_DOCUMENT_BUCKET;
-  path: string;
-  originalName: string;
-  mimeType: string;
-  size: number;
-  uploadedAt: string;
-};
+export const PROJECT_DOCUMENT_BUCKET = 'project-documents' as const;
 
 export function sanitizeDocumentFilename(name: string) {
   const cleaned = name
@@ -24,7 +16,7 @@ export function buildProjectDocumentPath(userId: string, projectId: string, file
   return `${userId}/${projectId}/${id}-${sanitizeDocumentFilename(filename)}`;
 }
 
-export async function uploadProjectDocument(projectId: string, file: File): Promise<StoredProjectDocument | null> {
+export async function uploadProjectDocument(projectId: string, file: File): Promise<StoredProjectDocumentRef | null> {
   if (!supabase) return null;
   const { data: authData } = await supabase.auth.getUser();
   const user = authData.user;
