@@ -1,4 +1,5 @@
 import type { WorkspaceData } from '../domain/project';
+import { supabase } from './supabase';
 
 const STORAGE_KEY = 'home-renovation-planner.workspace.v1';
 
@@ -9,25 +10,66 @@ export interface WorkspacePersistence {
   save(data: WorkspaceData): Promise<void>;
 }
 
-class LocalWorkspacePersistence implements WorkspacePersistence {
+function parseWorkspace(raw: string | null): WorkspaceData | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as WorkspaceData;
+    return parsed?.schemaVersion === 1 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function newest(a: WorkspaceData | null, b: WorkspaceData | null) {
+  if (!a) return b;
+  if (!b) return a;
+  return Date.parse(a.updatedAt) >= Date.parse(b.updatedAt) ? a : b;
+}
+
+class LocalFirstWorkspacePersistence implements WorkspacePersistence {
   async load(): Promise<WorkspaceData | null> {
+    const local = parseWorkspace(localStorage.getItem(STORAGE_KEY));
+    if (!supabase) return local;
+
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as WorkspaceData;
-      if (parsed?.schemaVersion !== 1) return null;
-      return parsed;
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user) return local;
+
+      const { data, error } = await supabase
+        .from('workspace_documents')
+        .select('data')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) return local;
+      const cloud = data?.data as WorkspaceData | undefined;
+      const selected = newest(local, cloud?.schemaVersion === 1 ? cloud : null);
+      if (selected) localStorage.setItem(STORAGE_KEY, JSON.stringify(selected));
+      return selected;
     } catch {
-      return null;
+      return local;
     }
   }
 
   async save(data: WorkspaceData): Promise<void> {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (!supabase) return;
+
+    const { data: authData } = await supabase.auth.getUser();
+    const user = authData.user;
+    if (!user) return;
+
+    const { error } = await supabase.from('workspace_documents').upsert({
+      user_id: user.id,
+      data,
+      updated_at: data.updatedAt,
+    });
+    if (error) throw error;
   }
 }
 
-export const workspacePersistence: WorkspacePersistence = new LocalWorkspacePersistence();
+export const workspacePersistence: WorkspacePersistence = new LocalFirstWorkspacePersistence();
 
 export function clearLocalWorkspace() {
   localStorage.removeItem(STORAGE_KEY);
