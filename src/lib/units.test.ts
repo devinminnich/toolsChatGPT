@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMeasurement, inchesToMm, parseMeasurement, valueForInput } from './units';
+import { formatMeasurement, inchesToMm, parseCoordinate, parseMeasurement, valueForCoordinateInput, valueForInput } from './units';
 
 describe('measurement units', () => {
   it('treats bare numbers as inches in feet-and-inches mode', () => {
@@ -22,5 +22,12 @@ describe('measurement units', () => {
     expect(parseMeasurement('100', 'cm')).toBe(1000);
     expect(parseMeasurement('1', 'm')).toBe(1000);
     expect(formatMeasurement(1000, 'm')).toBe('1 m');
+  });
+
+  it('supports signed coordinates independently from nonnegative dimensions', () => {
+    expect(parseCoordinate('-12', 'in')).toBe(-inchesToMm(12));
+    expect(parseCoordinate(`-1' 6"`, 'ft-in')).toBe(-inchesToMm(18));
+    expect(valueForCoordinateInput(-inchesToMm(18), 'ft-in')).toBe(`-1' 6"`);
+    expect(parseMeasurement('-12', 'in')).toBeNull();
   });
 });
