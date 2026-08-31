@@ -26,7 +26,7 @@ button { cursor: pointer; }
 .unit-picker { display: grid; gap: 4px; font-size: .75rem; }
 .unit-picker select { min-height: 40px; border-radius: 8px; border: 1px solid #374151; padding: 0 10px; background: #1f2937; color: white; }
 
-.workspace { flex: 1; display: grid; grid-template-columns: 230px minmax(0,1fr) 260px; min-height: 0; }
+.workspace { flex: 1; display: grid; grid-template-columns: 240px minmax(0,1fr) 270px; min-height: 0; }
 .tool-panel { background: white; padding: 16px; border-right: 1px solid #d1d5db; }
 .properties-panel { border-right: 0; border-left: 1px solid #d1d5db; }
 .tool-panel h2 { font-size: .95rem; margin: 4px 0 12px; }
@@ -34,8 +34,9 @@ button { cursor: pointer; }
 .field-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .field-grid label { display: grid; gap: 5px; font-size: .78rem; color: #4b5563; }
 .field-grid input { width: 100%; min-height: 44px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font-size: 16px; }
-.object-buttons, .property-actions { display: grid; gap: 8px; }
-.object-buttons button, .property-actions button, .mobile-actions button, .icon-button {
+.object-buttons, .property-actions, .mode-buttons { display: grid; gap: 8px; }
+.mode-buttons { grid-template-columns: 1fr 1fr 1fr; }
+.object-buttons button, .property-actions button, .mobile-actions button, .icon-button, .mode-buttons button, .primary-action, .draw-status button, .canvas-controls button {
   min-height: 44px;
   border: 1px solid #cbd5e1;
   background: white;
@@ -43,21 +44,43 @@ button { cursor: pointer; }
   padding: 9px 12px;
   color: #111827;
 }
-.object-buttons button:hover, .property-actions button:hover { background: #f8fafc; }
+.mode-buttons button { padding-inline: 4px; font-size: .75rem; }
+.mode-buttons button.active, .mobile-actions button.active {
+  border-color: #111827;
+  background: #111827;
+  color: white;
+}
+.primary-action { width: 100%; margin-top: 10px; background: #111827; color: white; border-color: #111827; }
+.object-buttons button:hover, .property-actions button:hover, .canvas-controls button:hover { background: #f8fafc; }
 .property-actions { margin-top: 14px; grid-template-columns: 1fr 1fr; }
 .property-actions .danger { color: #b91c1c; }
+.draw-status { margin-top: 14px; display: grid; gap: 8px; padding: 12px; background: #f3f4f6; border-radius: 10px; font-size: .78rem; color: #4b5563; }
+.draw-status strong { color: #111827; }
 
 .canvas-panel { min-width: 0; display: flex; flex-direction: column; background: #e5e7eb; overflow: hidden; }
-.canvas-toolbar { min-height: 42px; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 0 14px; background: #f9fafb; border-bottom: 1px solid #d1d5db; font-size: .78rem; color: #4b5563; }
-.design-canvas { width: 100%; flex: 1; min-height: 460px; touch-action: none; user-select: none; }
-.grid-line { stroke: #cbd5e1; stroke-width: 2; }
-.room-fill { fill: #fff; }
-.room-outline { fill: none; stroke: #111827; stroke-width: 45; vector-effect: non-scaling-stroke; }
-.dimension-label { fill: #374151; font-size: 110px; font-weight: 600; }
-.fixture rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 22; vector-effect: non-scaling-stroke; }
+.canvas-toolbar { min-height: 48px; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 0 14px; background: #f9fafb; border-bottom: 1px solid #d1d5db; font-size: .78rem; color: #4b5563; }
+.canvas-controls { display: flex; gap: 5px; }
+.canvas-controls button { min-width: 44px; min-height: 36px; padding: 4px 9px; }
+.design-canvas { width: 100%; flex: 1; min-height: 460px; touch-action: none; user-select: none; background: #e5e7eb; }
+.design-canvas.mode-pan { cursor: grab; }
+.design-canvas.mode-pan:active { cursor: grabbing; }
+.design-canvas.mode-draw { cursor: crosshair; }
+.grid-line { stroke: #cbd5e1; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.canvas-background { fill-opacity: 1; }
+.room-fill { fill: #fff; pointer-events: none; }
+.wall-line { fill: none; stroke: #111827; stroke-width: 12; vector-effect: non-scaling-stroke; cursor: pointer; }
+.wall-line.selected { stroke: #2563eb; stroke-width: 16; }
+.wall-dimension { paint-order: stroke; stroke: white; stroke-width: 18; stroke-linejoin: round; }
+.dimension-label { fill: #374151; font-size: 95px; font-weight: 600; }
+.vertex-handle { fill: white; stroke: #2563eb; stroke-width: 16; vector-effect: non-scaling-stroke; cursor: grab; }
+.vertex-handle:active { cursor: grabbing; }
+.draft-shape polyline { fill: none; stroke: #2563eb; stroke-width: 12; vector-effect: non-scaling-stroke; stroke-dasharray: 20 12; }
+.draft-shape circle { fill: white; stroke: #2563eb; stroke-width: 14; vector-effect: non-scaling-stroke; pointer-events: none; }
+.draft-shape .draft-start { fill: #dbeafe; stroke-width: 20; }
+.fixture rect { fill: #dbeafe; stroke: #2563eb; stroke-width: 6; vector-effect: non-scaling-stroke; }
 .fixture text { fill: #1e3a8a; font-size: 95px; font-weight: 700; pointer-events: none; }
 .fixture .fixture-size { font-size: 70px; font-weight: 500; }
-.fixture.selected rect { fill: #bfdbfe; stroke: #111827; stroke-width: 30; }
+.fixture.selected rect { fill: #bfdbfe; stroke: #111827; stroke-width: 9; }
 
 .properties-heading { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
 .properties-heading h2 { margin-top: 2px; }
@@ -67,7 +90,7 @@ button { cursor: pointer; }
 .mobile-actions { display: none; }
 
 @media (max-width: 900px) {
-  .workspace { grid-template-columns: 190px minmax(0,1fr); }
+  .workspace { grid-template-columns: 205px minmax(0,1fr); }
   .properties-panel {
     position: absolute;
     right: 10px;
@@ -82,6 +105,7 @@ button { cursor: pointer; }
     z-index: 5;
   }
   .properties-panel.is-open { display: block; }
+  .mode-buttons { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -90,9 +114,14 @@ button { cursor: pointer; }
   .unit-picker select { max-width: 145px; }
   .workspace { display: block; flex: 1; }
   .left-panel { display: none; }
-  .canvas-panel { height: calc(100vh - 150px); min-height: 480px; }
-  .canvas-toolbar { flex-wrap: wrap; padding: 6px 10px; }
+  .canvas-panel { height: calc(100vh - 155px); min-height: 480px; }
+  .canvas-toolbar { padding: 6px 8px; }
+  .canvas-toolbar > span { max-width: 48%; }
+  .canvas-controls { margin-left: auto; }
+  .canvas-controls button { min-width: 40px; padding-inline: 7px; }
   .design-canvas { min-height: 0; }
+  .dimension-label { font-size: 80px; }
+  .vertex-handle { r: 70px; }
   .properties-panel {
     position: fixed;
     left: 0;
@@ -107,15 +136,17 @@ button { cursor: pointer; }
   }
   .mobile-actions {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid #d1d5db;
     background: white;
   }
-  .mobile-actions button { font-size: .8rem; padding-inline: 4px; }
+  .mobile-actions button { font-size: .78rem; padding-inline: 4px; }
 }
 
 @media (hover: hover) and (pointer: fine) {
   .fixture:hover rect { stroke: #1d4ed8; }
+  .wall-line:hover { stroke: #2563eb; }
+  .vertex-handle:hover { fill: #dbeafe; }
 }
