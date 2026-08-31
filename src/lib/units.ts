@@ -13,8 +13,8 @@ export function mmToInches(mm: number): number {
 
 function convertNumberToMm(number: number, unit: Exclude<DisplayUnit, 'ft-in'>): number {
   switch (unit) {
-    case 'in': return Math.round(number * MM_PER_IN);
-    case 'ft': return Math.round(number * MM_PER_FT);
+    case 'in': return inchesToMm(number);
+    case 'ft': return inchesToMm(number * 12);
     case 'mm': return Math.round(number);
     case 'cm': return Math.round(number * 10);
     case 'm': return Math.round(number * 1000);
@@ -30,8 +30,8 @@ export function parseMeasurement(value: string, unit: DisplayUnit): number | nul
     if (!match) return null;
     const feet = Number(match[1] ?? 0);
     const inches = Number(match[2] ?? 0);
-    const mm = feet * MM_PER_FT + inches * MM_PER_IN;
-    return Number.isFinite(mm) && mm >= 0 ? Math.round(mm) : null;
+    const totalInches = feet * 12 + inches;
+    return Number.isFinite(totalInches) && totalInches >= 0 ? inchesToMm(totalInches) : null;
   }
 
   const number = Number(trimmed.replace(/[^0-9.+-]/g, ''));
