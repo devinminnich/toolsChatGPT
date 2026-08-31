@@ -27,12 +27,16 @@ const scope: ScopeSuggestion[] = [
 ];
 
 describe('estimateScope', () => {
-  it('excludes ignored scope and adds contingency', () => {
+  it('excludes ignored scope and adds explicit contractor overhead plus contingency', () => {
     const result = estimateScope(scope, 'contractor', 'standard');
-    expect(result.items).toHaveLength(2);
-    expect(result.subtotal.typical).toBe(1650);
-    expect(result.contingency.typical).toBe(248);
-    expect(result.total.typical).toBe(1898);
+    expect(result.items).toHaveLength(4);
+    expect(result.items.filter((item) => item.kind === 'scope')).toHaveLength(2);
+    expect(result.items.some((item) => item.kind === 'disposal')).toBe(true);
+    expect(result.items.some((item) => item.kind === 'permit')).toBe(true);
+    expect(result.items.some((item) => item.scopeId === 'ignored')).toBe(false);
+    expect(result.subtotal.typical).toBe(2500);
+    expect(result.contingency.typical).toBe(375);
+    expect(result.total.typical).toBe(2875);
     expect(result.region.label).toBe('National baseline');
   });
 
