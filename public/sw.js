@@ -1,5 +1,10 @@
-const CACHE_NAME = 'renovation-planner-v2';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest'];
+const CACHE_NAME = 'renovation-planner-v3';
+
+function appUrl(path = '') {
+  return new URL(path, self.registration.scope).href;
+}
+
+const APP_SHELL = [appUrl(), appUrl('index.html'), appUrl('manifest.webmanifest')];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -32,7 +37,7 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       networkAndCache(request).catch(async () => (
-        (await caches.match(request)) || (await caches.match('/index.html'))
+        (await caches.match(request)) || (await caches.match(appUrl('index.html')))
       )),
     );
     return;
