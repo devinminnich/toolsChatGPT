@@ -39,9 +39,10 @@ export default function AuthBar() {
     if (!supabase || !email.trim() || !online) return;
     setBusy(true);
     setMessage('');
+    const redirectTo = new URL(import.meta.env.BASE_URL, window.location.origin).href;
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: redirectTo },
     });
     setBusy(false);
     setMessage(error ? error.message : 'Check your email for the sign-in link.');
