@@ -8,6 +8,7 @@ import {
   type Point,
   type WorkspaceData,
 } from '../domain/project';
+import { appendProjectActivity, createProjectActivity } from '../domain/projectActivity';
 import { createProjectInActiveHome, renameProject as renameWorkspaceProject, switchProject as switchWorkspaceProject } from '../domain/workspaceOperations';
 import { WORKSPACE_SAVED_EVENT, workspacePersistence, type PersistenceStatus } from '../lib/persistence';
 
@@ -137,7 +138,8 @@ export function useWorkspace(initialVertices: Point[]) {
     const name = `Option ${String.fromCharCode(65 + existingProposalCount)}`;
     const sourceSnapshot = { ...activeDesign, vertices, fixtures, updatedAt: nowIso() };
     const next = cloneAsProposed(sourceSnapshot, name);
-    mutateActiveProject((project) => ({
+    const activity = createProjectActivity('proposal-created', 'Proposed design created', `${sourceSnapshot.name} → ${next.name}`);
+    mutateActiveProject((project) => appendProjectActivity({
       ...project,
       activeDesignId: next.id,
       updatedAt: nowIso(),
@@ -145,7 +147,7 @@ export function useWorkspace(initialVertices: Point[]) {
         ...project.designs.map((design) => design.id === activeDesign.id ? sourceSnapshot : design),
         next,
       ],
-    }));
+    }, activity));
     return next;
   }
 
