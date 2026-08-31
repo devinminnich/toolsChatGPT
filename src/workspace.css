@@ -102,6 +102,8 @@
 .estimate-range div { background: #f8fafc; border-radius: 10px; padding: 10px; display: grid; gap: 3px; }
 .estimate-range span { font-size: .7rem; color: #64748b; }
 .estimate-range strong { font-size: 1rem; }
+.export-button { min-height: 40px; border: 1px solid #0f172a; border-radius: 8px; background: #0f172a; color: #fff; padding: 8px 11px; font-weight: 650; }
+.export-button:hover { background: #1e293b; }
 .estimate-card details, .rfq-card details { border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 10px; }
 .estimate-card summary, .rfq-card summary { cursor: pointer; font-size: .8rem; color: #475569; }
 .estimate-lines { margin-top: 9px; display: grid; gap: 6px; }
@@ -114,32 +116,11 @@
 .rfq-card ul { padding-left: 20px; font-size: .78rem; color: #475569; line-height: 1.5; }
 
 @media (max-width: 640px) {
-  .topbar-actions {
-    gap: 8px;
-  }
-
-  .save-status {
-    display: none;
-  }
-
-  .design-tabs {
-    padding-inline: 8px;
-  }
-
-  .design-tabs button {
-    min-height: 42px;
-    font-size: .8rem;
-  }
-
-  .review-drawer {
-    left: 0;
-    right: 0;
-    bottom: 66px;
-    transform: none;
-    width: 100%;
-    border-radius: 14px 14px 0 0;
-  }
-
+  .topbar-actions { gap: 8px; }
+  .save-status { display: none; }
+  .design-tabs { padding-inline: 8px; }
+  .design-tabs button { min-height: 42px; font-size: .8rem; }
+  .review-drawer { left: 0; right: 0; bottom: 66px; transform: none; width: 100%; border-radius: 14px 14px 0 0; }
   .review-content { max-height: 62vh; padding: 12px; }
   .scope-row { grid-template-columns: 1fr; }
   .material-row { grid-template-columns: 1fr; }
