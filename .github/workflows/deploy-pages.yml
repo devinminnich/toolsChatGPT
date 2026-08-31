@@ -40,3 +40,21 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify live app shell and JavaScript
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          page="$(mktemp)"
+          curl --fail --location --retry 12 --retry-delay 5 --retry-all-errors "$PAGE_URL" -o "$page"
+          grep -q '<div id="root"></div>' "$page"
+          asset="$(grep -oE 'src="[^"]+assets/index-[^"]+\.js"' "$page" | head -1 | cut -d'"' -f2)"
+          test -n "$asset"
+          if [[ "$asset" = /* ]]; then
+            origin="$(printf '%s' "$PAGE_URL" | sed -E 's#(https?://[^/]+).*#\1#')"
+            asset_url="$origin$asset"
+          else
+            asset_url="${PAGE_URL%/}/$asset"
+          fi
+          curl --fail --location --retry 12 --retry-delay 5 --retry-all-errors "$asset_url" -o /dev/null
