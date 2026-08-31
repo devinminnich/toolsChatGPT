@@ -15,6 +15,20 @@ test('creates and switches to a new renovation project', async ({ page }) => {
   await expect(page.getByText(/My House \/ Back Patio/)).toBeVisible();
 });
 
+test('creates a second home with an isolated first project and switches back', async ({ page }) => {
+  await page.getByRole('button', { name: '+ Home' }).click();
+  await page.getByLabel('New home name').fill('Cabin');
+  await page.getByLabel('First project name').fill('Kitchen');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+
+  await expect(page.getByLabel('Current home').locator('option:checked')).toHaveText('Cabin');
+  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Kitchen');
+  await expect(page.getByText(/Cabin \/ Kitchen/)).toBeVisible();
+
+  await page.getByLabel('Current home').selectOption({ label: 'My House' });
+  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Primary Bathroom');
+});
+
 test('branches Existing into Proposed and exposes project review', async ({ page }) => {
   await page.getByRole('button', { name: '+ Proposed option' }).click();
   await expect(page.getByRole('button', { name: 'Option A' })).toBeVisible();
