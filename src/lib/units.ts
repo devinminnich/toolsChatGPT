@@ -11,6 +11,16 @@ export function mmToInches(mm: number): number {
   return mm / MM_PER_IN;
 }
 
+function convertNumberToMm(number: number, unit: Exclude<DisplayUnit, 'ft-in'>): number {
+  switch (unit) {
+    case 'in': return Math.round(number * MM_PER_IN);
+    case 'ft': return Math.round(number * MM_PER_FT);
+    case 'mm': return Math.round(number);
+    case 'cm': return Math.round(number * 10);
+    case 'm': return Math.round(number * 1000);
+  }
+}
+
 export function parseMeasurement(value: string, unit: DisplayUnit): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
@@ -26,14 +36,23 @@ export function parseMeasurement(value: string, unit: DisplayUnit): number | nul
 
   const number = Number(trimmed.replace(/[^0-9.+-]/g, ''));
   if (!Number.isFinite(number) || number < 0) return null;
+  return convertNumberToMm(number, unit);
+}
 
-  switch (unit) {
-    case 'in': return Math.round(number * MM_PER_IN);
-    case 'ft': return Math.round(number * MM_PER_FT);
-    case 'mm': return Math.round(number);
-    case 'cm': return Math.round(number * 10);
-    case 'm': return Math.round(number * 1000);
+export function parseCoordinate(value: string, unit: DisplayUnit): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (unit === 'ft-in') {
+    const negative = trimmed.startsWith('-');
+    const unsigned = trimmed.replace(/^[-+]\s*/, '');
+    const magnitude = parseMeasurement(unsigned, 'ft-in');
+    return magnitude === null ? null : negative ? -magnitude : magnitude;
   }
+
+  const number = Number(trimmed.replace(/[^0-9.+-]/g, ''));
+  if (!Number.isFinite(number)) return null;
+  return convertNumberToMm(number, unit);
 }
 
 export function formatMeasurement(mm: number, unit: DisplayUnit): string {
@@ -63,4 +82,9 @@ export function valueForInput(mm: number, unit: DisplayUnit): string {
     case 'cm': return (mm / 10).toFixed(1).replace(/\.0$/, '');
     case 'm': return (mm / 1000).toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
   }
+}
+
+export function valueForCoordinateInput(mm: number, unit: DisplayUnit): string {
+  if (mm >= 0) return valueForInput(mm, unit);
+  return `-${valueForInput(Math.abs(mm), unit)}`;
 }
