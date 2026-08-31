@@ -1,3 +1,55 @@
+.quote-file-import {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px dashed #94a3b8;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.quote-file-import > span {
+  font-size: .82rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.quote-file-import input {
+  font-size: .8rem;
+}
+
+.quote-file-import small,
+.import-status {
+  color: #64748b;
+  font-size: .72rem;
+  line-height: 1.4;
+}
+
+.import-status {
+  margin: 8px 0;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #f1f5f9;
+}
+
+.quote-import-separator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.quote-import-separator::before,
+.quote-import-separator::after {
+  content: '';
+  height: 1px;
+  background: #e2e8f0;
+  flex: 1;
+}
+
 .quote-edit-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
