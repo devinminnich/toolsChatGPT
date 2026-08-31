@@ -80,9 +80,11 @@ test('supports exact fixture position rotation and duplication', async ({ page, 
   }
 
   await page.getByLabel('Units').selectOption('in');
-  const x = page.getByLabel('X position');
-  const y = page.getByLabel('Y position');
-  const rotation = page.getByLabel('Rotation (degrees)');
+  const properties = page.locator('.properties-panel.is-open');
+  await properties.getByText('Precision', { exact: true }).click();
+  const x = properties.getByLabel('X position');
+  const y = properties.getByLabel('Y position');
+  const rotation = properties.getByLabel('Rotation (degrees)');
   await x.fill('10');
   await x.blur();
   await y.fill('20');
@@ -90,13 +92,13 @@ test('supports exact fixture position rotation and duplication', async ({ page, 
   await rotation.fill('45');
   await rotation.blur();
 
-  await expect(page.getByLabel('X position')).toHaveValue('10');
-  await expect(page.getByLabel('Y position')).toHaveValue('20');
-  await expect(page.getByLabel('Rotation (degrees)')).toHaveValue('45');
+  await expect(x).toHaveValue('10');
+  await expect(y).toHaveValue('20');
+  await expect(rotation).toHaveValue('45');
 
-  await page.getByRole('button', { name: 'Duplicate', exact: true }).click();
-  const duplicatedX = Number(await page.getByLabel('X position').inputValue());
-  const duplicatedY = Number(await page.getByLabel('Y position').inputValue());
+  await properties.getByRole('button', { name: 'Duplicate', exact: true }).click();
+  const duplicatedX = Number(await properties.getByLabel('X position').inputValue());
+  const duplicatedY = Number(await properties.getByLabel('Y position').inputValue());
   expect(duplicatedX).toBeCloseTo(12, 1);
   expect(duplicatedY).toBeCloseTo(22, 1);
 });
