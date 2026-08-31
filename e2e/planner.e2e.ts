@@ -7,30 +7,48 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByLabel('Current renovation project')).toBeVisible();
 });
 
-test('creates and switches to a new renovation project with its room boundary', async ({ page }) => {
+test('creates a project with a separately named room and locked room boundary', async ({ page }) => {
   await page.getByRole('button', { name: '+ Project' }).click();
-  await page.getByLabel('New project name').fill('Back Patio');
-  await page.getByLabel('Room width in inches').fill('180');
-  await page.getByLabel('Room depth in inches').fill('120');
+  await page.getByLabel('New project name').fill('Bathroom Remodel');
+  await page.getByLabel('New project room name').fill('Primary Bathroom');
+  await page.getByLabel('Room width in inches').fill('172');
+  await page.getByLabel('Room depth in inches').fill('92');
   await page.getByRole('button', { name: 'Create project' }).click();
-  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Back Patio');
-  await expect(page.getByText(/My House \/ Back Patio/)).toBeVisible();
+
+  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Bathroom Remodel');
+  await expect(page.getByLabel('Current room')).toContainText('Primary Bathroom');
+  await expect(page.getByText(/My House \/ Bathroom Remodel/)).toBeVisible();
   await page.getByLabel('Units').selectOption('in');
-  await expect(page.locator('.canvas-toolbar')).toContainText('180 in × 120 in envelope');
+  await expect(page.locator('.canvas-toolbar')).toContainText('Primary Bathroom · 172 in × 92 in');
+  await expect(page.locator('.vertex-handle')).toHaveCount(0);
+  await expect(page.locator('.wall-line').first()).toHaveCSS('pointer-events', 'none');
 });
 
-test('creates a second home with an isolated first project and switches back', async ({ page }) => {
+test('edits room name and enters custom room-shape editor from the project level', async ({ page, isMobile }) => {
+  await page.getByRole('button', { name: 'Edit room' }).click();
+  await page.getByLabel('Edit room name').fill('Main Bathroom');
+  await page.getByRole('button', { name: 'Design custom shape' }).click();
+
+  await expect(page.getByLabel('Current room')).toContainText('Main Bathroom');
+  await expect(page.locator('.design-canvas')).toHaveClass(/room-editing/);
+  await expect(page.locator('.vertex-handle')).toHaveCount(4);
+  await expect(page.getByRole('button', { name: isMobile ? 'Redraw' : 'Redraw', exact: true })).toBeVisible();
+});
+
+test('creates a second home with an isolated first project and room and switches back', async ({ page }) => {
   await page.getByRole('button', { name: '+ Home' }).click();
   await page.getByLabel('New home name').fill('Cabin');
-  await page.getByLabel('First project name').fill('Kitchen');
+  await page.getByLabel('First project name').fill('Kitchen Remodel');
+  await page.getByLabel('First room name').fill('Kitchen');
   await page.getByRole('button', { name: 'Create', exact: true }).click();
 
   await expect(page.getByLabel('Current home').locator('option:checked')).toHaveText('Cabin');
-  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Kitchen');
-  await expect(page.getByText(/Cabin \/ Kitchen/)).toBeVisible();
+  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Kitchen Remodel');
+  await expect(page.getByLabel('Current room')).toContainText('Kitchen');
+  await expect(page.getByText(/Cabin \/ Kitchen Remodel/)).toBeVisible();
 
   await page.getByLabel('Current home').selectOption({ label: 'My House' });
-  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Primary Bathroom');
+  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Primary Bathroom Remodel');
 });
 
 test('branches Existing into Proposed and switches the complete comparison view', async ({ page }) => {
@@ -126,10 +144,11 @@ test('reports offline mode without losing the loaded project', async ({ page }) 
 test('undo restores the previous saved workspace state', async ({ page }) => {
   await page.getByRole('button', { name: '+ Project' }).click();
   await page.getByLabel('New project name').fill('Undo Test');
+  await page.getByLabel('New project room name').fill('Undo Room');
   await page.getByRole('button', { name: 'Create project' }).click();
   await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Undo Test');
   const undo = page.getByRole('button', { name: 'Undo last saved edit' });
   await expect(undo).toBeEnabled();
   await undo.click();
-  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Primary Bathroom');
+  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Primary Bathroom Remodel');
 });
