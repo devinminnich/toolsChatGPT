@@ -3,6 +3,7 @@ import { buildQuoteComparisonPdfSections } from './domain/pdfContent';
 import { compareQuoteToRfq, type ContractorQuoteScopeItem, type NormalizedContractorQuote } from './domain/quoteComparison';
 import { parseContractorQuoteText } from './domain/quoteParser';
 import type { RfqDocument } from './domain/rfq';
+import { extractImageText } from './lib/imageTextExtraction';
 import { downloadPdf } from './lib/pdfExport';
 import { extractPdfText } from './lib/pdfTextExtraction';
 
@@ -45,21 +46,27 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
     setImportStatus(`Reading ${file.name}…`);
     try {
       let extracted = '';
+      let extractionNote = '';
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
         extracted = await extractPdfText(file);
+        extractionNote = 'PDF text extraction';
       } else if (file.type.startsWith('text/') || file.name.toLowerCase().endsWith('.txt')) {
         extracted = await file.text();
+        extractionNote = 'text import';
+      } else if (file.type.startsWith('image/')) {
+        extracted = await extractImageText(file, (progress) => setImportStatus(`Reading image text… ${Math.round(progress * 100)}%`));
+        extractionNote = 'image OCR';
       } else {
-        setImportStatus('This importer currently extracts PDF and text files. For an image/screenshot, paste the quote text for now.');
+        setImportStatus('Unsupported file type. Use PDF, TXT, JPG, PNG, WEBP, or paste text.');
         return;
       }
       if (!extracted.trim()) {
-        setImportStatus('No readable text was found in this file. It may be a scanned/image-only PDF.');
+        setImportStatus('No readable text was found. If this is a scanned PDF, upload a page screenshot/image or paste the quote text.');
         return;
       }
       setText(extracted);
       analyzeText(extracted);
-      setImportStatus(`Imported ${file.name}. Review the extracted fields below.`);
+      setImportStatus(`Imported ${file.name} using ${extractionNote}. Review every extracted field before saving.`);
     } catch (error) {
       console.error(error);
       setImportStatus('The file could not be read. You can still paste the quote text manually.');
@@ -92,7 +99,7 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
       <div className="quote-heading">
         <div>
           <h3>Contractor quote comparison</h3>
-          <p className="muted">Upload a PDF/text proposal or paste quote text, review the extraction, correct it if needed, then save the normalized quote to the project.</p>
+          <p className="muted">Upload a PDF, text file, or quote image/screenshot—or paste text—then review and correct the extraction before saving it to the project.</p>
         </div>
         {quote && <button type="button" className="secondary-button" onClick={() => { setQuote(null); setText(''); setSavedMessage(false); setImportStatus(null); }}>New quote</button>}
       </div>
@@ -108,8 +115,8 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
       {!quote ? <>
         <label className="quote-file-import">
           <span>Import contractor quote</span>
-          <input type="file" accept="application/pdf,text/plain,.pdf,.txt" onChange={(event) => void importFile(event.target.files?.[0])} />
-          <small>PDFs with selectable text and plain-text files are supported directly.</small>
+          <input type="file" accept="application/pdf,text/plain,image/jpeg,image/png,image/webp,.pdf,.txt,.jpg,.jpeg,.png,.webp" onChange={(event) => void importFile(event.target.files?.[0])} />
+          <small>PDF/TXT text is extracted directly. Images use on-device OCR and should be reviewed carefully.</small>
         </label>
         {importStatus && <p className="import-status">{importStatus}</p>}
         <div className="quote-import-separator"><span>or paste text</span></div>
