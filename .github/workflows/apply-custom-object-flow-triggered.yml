@@ -1,0 +1,33 @@
+name: Apply custom object flow triggered
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/custom-object-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply custom object flow
+        run: python scripts/apply_custom_object_flow.py
+      - name: Validate patch
+        run: |
+          git diff --check
+          grep -q "Create custom object" src/PersistentPlanner.tsx
+          grep -q "Linen cabinet" e2e/custom-object.e2e.ts
+          ! grep -q "addPreset('Custom'" src/PersistentPlanner.tsx
+      - name: Commit feature
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/PersistentPlanner.tsx src/workspace.css e2e/custom-object.e2e.ts
+          git commit -m "Replace generic custom object with centered creation flow"
+          git push origin main
