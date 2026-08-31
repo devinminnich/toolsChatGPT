@@ -80,3 +80,5 @@ test('gives fixtures a larger invisible drag target than their visible box', asy
           git add src/PersistentPlanner.tsx src/styles.css e2e/custom-object.e2e.ts
           git commit -m "Rebalance mobile room and object dragging"
           git push origin main
+
+# trigger
