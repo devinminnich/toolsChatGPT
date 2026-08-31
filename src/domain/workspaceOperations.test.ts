@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createProjectInActiveHome, renameProject, switchProject } from './workspaceOperations';
+import { createHome, createProjectInActiveHome, renameHome, renameProject, switchHome, switchProject } from './workspaceOperations';
 import type { WorkspaceData } from './project';
 
 const workspace: WorkspaceData = {
@@ -46,6 +46,27 @@ describe('workspace project operations', () => {
     expect(switched.activeProjectId).toBe('project_project-id');
     expect(project.name).toBe('Workshop Garage');
     expect(project.activity?.[0]).toMatchObject({ type: 'project-renamed', detail: 'Garage → Workshop Garage' });
+    vi.unstubAllGlobals();
+  });
+
+  it('creates, switches, and renames a second home with its own first project', () => {
+    vi.stubGlobal('crypto', { randomUUID: vi.fn()
+      .mockReturnValueOnce('home-2')
+      .mockReturnValueOnce('project-2')
+      .mockReturnValueOnce('design-2')
+      .mockReturnValueOnce('activity-2') });
+    const created = createHome(workspace, 'Mountain House', 'Kitchen', [{ x: 0, y: 0 }, { x: 1000, y: 0 }, { x: 1000, y: 1000 }]);
+    expect(created.homes).toHaveLength(2);
+    expect(created.activeHomeId).toBe('home_home-2');
+    expect(created.activeProjectId).toBe('project_project-2');
+    expect(created.homes[1].projects[0].name).toBe('Kitchen');
+
+    const switched = switchHome(created, 'home-1');
+    expect(switched.activeHomeId).toBe('home-1');
+    expect(switched.activeProjectId).toBe('project-1');
+
+    const renamed = renameHome(created, 'home_home-2', 'Cabin');
+    expect(renamed.homes[1].name).toBe('Cabin');
     vi.unstubAllGlobals();
   });
 });
