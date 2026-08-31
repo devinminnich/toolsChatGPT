@@ -9,7 +9,7 @@ import {
   type WorkspaceData,
 } from '../domain/project';
 import { createProjectInActiveHome, renameProject as renameWorkspaceProject, switchProject as switchWorkspaceProject } from '../domain/workspaceOperations';
-import { workspacePersistence, type PersistenceStatus } from '../lib/persistence';
+import { WORKSPACE_SAVED_EVENT, workspacePersistence, type PersistenceStatus } from '../lib/persistence';
 
 function createInitialWorkspace(vertices: Point[]): WorkspaceData {
   const now = nowIso();
@@ -62,6 +62,15 @@ export function useWorkspace(initialVertices: Point[]) {
       if (!cancelled) setHydrated(true);
     });
     return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const onWorkspaceSaved = (event: Event) => {
+      const next = (event as CustomEvent<WorkspaceData>).detail;
+      setWorkspace((current) => current.updatedAt === next.updatedAt ? current : next);
+    };
+    window.addEventListener(WORKSPACE_SAVED_EVENT, onWorkspaceSaved);
+    return () => window.removeEventListener(WORKSPACE_SAVED_EVENT, onWorkspaceSaved);
   }, []);
 
   useEffect(() => {
