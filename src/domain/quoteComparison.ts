@@ -1,28 +1,9 @@
+import type { SavedContractorQuote, SavedContractorQuoteScopeItem } from './project';
 import type { RfqDocument } from './rfq';
 
 export type QuoteScopeStatus = 'included' | 'excluded' | 'ambiguous' | 'not-mentioned';
-
-export type ContractorQuoteScopeItem = {
-  title: string;
-  description?: string;
-  status: 'included' | 'excluded' | 'allowance' | 'optional';
-};
-
-export type NormalizedContractorQuote = {
-  id: string;
-  contractorName: string;
-  quoteDate?: string;
-  expirationDate?: string;
-  total?: number;
-  labor?: number;
-  materials?: number;
-  allowances?: number;
-  schedule?: string;
-  paymentTerms?: string;
-  scope: ContractorQuoteScopeItem[];
-  exclusions: string[];
-  notes: string[];
-};
+export type ContractorQuoteScopeItem = SavedContractorQuoteScopeItem;
+export type NormalizedContractorQuote = SavedContractorQuote;
 
 export type QuoteComparisonLine = {
   rfqScopeId: string;
