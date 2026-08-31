@@ -1,16 +1,18 @@
 import { createId, nowIso, type Point, type WorkspaceData } from './project';
 import { appendProjectActivity, createProjectActivity } from './projectActivity';
 
-function createProject(homeId: string, name: string, vertices: Point[]) {
+function createProject(homeId: string, name: string, vertices: Point[], roomName?: string) {
   const now = nowIso();
   const projectId = createId('project');
   const designId = createId('design');
   const trimmedName = name.trim() || 'New Project';
+  const trimmedRoomName = roomName?.trim() || trimmedName;
   const roomVertices = vertices.map((point) => ({ ...point }));
   const project = appendProjectActivity({
     id: projectId,
     homeId,
     name: trimmedName,
+    roomName: trimmedRoomName,
     roomVertices,
     activeDesignId: designId,
     createdAt: now,
@@ -24,7 +26,7 @@ function createProject(homeId: string, name: string, vertices: Point[]) {
       createdAt: now,
       updatedAt: now,
     }],
-  }, createProjectActivity('project-created', 'Project created', trimmedName));
+  }, createProjectActivity('project-created', 'Project created', `${trimmedName} · ${trimmedRoomName}`));
   return project;
 }
 
@@ -33,11 +35,12 @@ export function createHome(
   homeName: string,
   firstProjectName: string,
   vertices: Point[],
+  firstRoomName?: string,
 ): WorkspaceData {
   const now = nowIso();
   const homeId = createId('home');
   const homeLabel = homeName.trim() || 'New Home';
-  const project = createProject(homeId, firstProjectName || 'First Project', vertices);
+  const project = createProject(homeId, firstProjectName || 'First Project', vertices, firstRoomName);
   return {
     ...workspace,
     activeHomeId: homeId,
@@ -77,11 +80,11 @@ export function renameHome(workspace: WorkspaceData, homeId: string, name: strin
   };
 }
 
-export function createProjectInActiveHome(workspace: WorkspaceData, name: string, vertices: Point[]): WorkspaceData {
+export function createProjectInActiveHome(workspace: WorkspaceData, name: string, vertices: Point[], roomName?: string): WorkspaceData {
   const home = workspace.homes.find((item) => item.id === workspace.activeHomeId) ?? workspace.homes[0];
   if (!home) return workspace;
   const now = nowIso();
-  const project = createProject(home.id, name, vertices);
+  const project = createProject(home.id, name, vertices, roomName);
 
   return {
     ...workspace,
@@ -117,6 +120,55 @@ export function renameProject(workspace: WorkspaceData, projectId: string, name:
           { ...project, name: trimmedName, updatedAt: now },
           createProjectActivity('project-renamed', 'Project renamed', `${project.name} → ${trimmedName}`),
         );
+      }),
+    })),
+  };
+}
+
+export function renameProjectRoom(workspace: WorkspaceData, projectId: string, roomName: string): WorkspaceData {
+  const trimmedRoomName = roomName.trim();
+  if (!trimmedRoomName) return workspace;
+  const now = nowIso();
+  return {
+    ...workspace,
+    updatedAt: now,
+    homes: workspace.homes.map((home) => ({
+      ...home,
+      projects: home.projects.map((project) => {
+        if (project.id !== projectId || (project.roomName ?? project.name) === trimmedRoomName) return project;
+        return appendProjectActivity(
+          { ...project, roomName: trimmedRoomName, updatedAt: now },
+          createProjectActivity('room-updated', 'Room name updated', `${project.roomName ?? project.name} → ${trimmedRoomName}`),
+        );
+      }),
+    })),
+  };
+}
+
+export function updateProjectRoomSetup(workspace: WorkspaceData, projectId: string, roomName: string, vertices: Point[]): WorkspaceData {
+  const trimmedRoomName = roomName.trim();
+  if (!trimmedRoomName || vertices.length < 3) return workspace;
+  const now = nowIso();
+  const roomVertices = vertices.map((point) => ({ ...point }));
+  return {
+    ...workspace,
+    updatedAt: now,
+    homes: workspace.homes.map((home) => ({
+      ...home,
+      updatedAt: home.projects.some((project) => project.id === projectId) ? now : home.updatedAt,
+      projects: home.projects.map((project) => {
+        if (project.id !== projectId) return project;
+        return appendProjectActivity({
+          ...project,
+          roomName: trimmedRoomName,
+          roomVertices,
+          updatedAt: now,
+          designs: project.designs.map((design) => ({
+            ...design,
+            vertices: roomVertices.map((point) => ({ ...point })),
+            updatedAt: now,
+          })),
+        }, createProjectActivity('room-updated', 'Project room updated', `${trimmedRoomName} · ${roomVertices.length} walls`));
       }),
     })),
   };
