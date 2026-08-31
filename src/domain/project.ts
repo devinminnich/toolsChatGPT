@@ -101,6 +101,8 @@ export type Project = {
   id: string;
   homeId: string;
   name: string;
+  /** Human-readable room or area this renovation project applies to. */
+  roomName?: string;
   /** Canonical room boundary shared by Existing and every Proposed design. */
   roomVertices?: Point[];
   designs: Design[];
