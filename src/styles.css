@@ -66,6 +66,7 @@ button { cursor: pointer; }
 .grid-line { stroke: #d9e2ec; stroke-width: 1; vector-effect: non-scaling-stroke; }
 .canvas-background { fill-opacity: 1; }
 .room-fill { fill: #fff; pointer-events: none; }
+.design-canvas.room-locked .wall-line { pointer-events: none; cursor: default; }
 .wall-line { fill: none; stroke: var(--navy); stroke-width: 12; vector-effect: non-scaling-stroke; pointer-events: none; cursor: default; }
 .wall-line.selected { stroke: var(--navy); stroke-width: 12; }
 .wall-dimension { paint-order: stroke; stroke: white; stroke-width: 18; stroke-linejoin: round; }

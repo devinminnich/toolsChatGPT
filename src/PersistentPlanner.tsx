@@ -3,6 +3,7 @@ import { createId, type FixtureInstance, type Point } from './domain/project';
 import { pinchViewport, type ScreenPoint } from './domain/viewportGestures';
 import { useWorkspace } from './hooks/useWorkspace';
 import { DisplayUnit, formatMeasurement, inchesToMm, parseCoordinate, parseMeasurement, valueForCoordinateInput, valueForInput } from './lib/units';
+import { PROJECT_ROOM_EDIT_EVENT } from './lib/projectRoomEvents';
 
 type Mode = 'select' | 'draw' | 'pan';
 type ViewBox = { x: number; y: number; width: number; height: number };
@@ -99,6 +100,7 @@ export default function PersistentPlanner() {
   const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [selectedWall, setSelectedWall] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>('select');
+  const [roomEditing, setRoomEditing] = useState(false);
   const [drag, setDrag] = useState<DragState>(null);
   const [view, setView] = useState<ViewBox>({ x: -600, y: -600, width: INITIAL_WIDTH + 1200, height: INITIAL_DEPTH + 1200 });
   const [widthInput, setWidthInput] = useState(valueForInput(INITIAL_WIDTH, 'ft-in'));
@@ -118,6 +120,8 @@ export default function PersistentPlanner() {
   const activeProject = workspace.activeProject;
   const selectedFixture = fixtures.find((fixture) => fixture.id === selectedFixtureId) ?? null;
   const roomBounds = useMemo(() => bounds(vertices), [vertices]);
+  const roomName = activeProject?.roomName ?? activeProject?.name ?? 'Room';
+  const projectRoomSignature = workspace.roomVertices.map((point) => `${point.x}:${point.y}`).join('|');
   const roomWidth = roomBounds.maxX - roomBounds.minX;
   const roomDepth = roomBounds.maxY - roomBounds.minY;
   const wallLength = selectedWall === null ? null : distance(vertices[selectedWall], vertices[(selectedWall + 1) % vertices.length]);
@@ -126,9 +130,10 @@ export default function PersistentPlanner() {
     if (!workspace.hydrated || !activeDesign) return;
     if (loadedDesignRef.current === activeDesign.id) return;
     loadedDesignRef.current = activeDesign.id;
-    setVertices(activeDesign.vertices);
+    const canonicalRoom = workspace.roomVertices.length ? workspace.roomVertices : activeDesign.vertices;
+    setVertices(canonicalRoom);
     setFixtures(activeDesign.fixtures);
-    const nextBounds = bounds(activeDesign.vertices);
+    const nextBounds = bounds(canonicalRoom);
     const width = Math.max(nextBounds.maxX - nextBounds.minX, 1000);
     const height = Math.max(nextBounds.maxY - nextBounds.minY, 1000);
     const pad = Math.max(width, height) * 0.16 + 250;
@@ -137,7 +142,35 @@ export default function PersistentPlanner() {
     setDepthInput(valueForInput(height, unit));
     setSelectedFixtureId(null);
     setSelectedWall(null);
-  }, [workspace.hydrated, activeDesign?.id]);
+    setRoomEditing(false);
+  }, [workspace.hydrated, activeDesign?.id, activeProject?.id]);
+
+  useEffect(() => {
+    if (!workspace.hydrated || roomEditing || !workspace.roomVertices.length) return;
+    const localSignature = vertices.map((point) => `${point.x}:${point.y}`).join('|');
+    if (localSignature === projectRoomSignature) return;
+    setVertices(workspace.roomVertices);
+    fitToView(workspace.roomVertices);
+  }, [projectRoomSignature, activeProject?.id, roomEditing]);
+
+  useEffect(() => {
+    const openRoomEditor = () => {
+      if (!activeProject) return;
+      const canonicalRoom = workspace.roomVertices.length ? workspace.roomVertices : activeDesign?.vertices ?? vertices;
+      setVertices(canonicalRoom.map((point) => ({ ...point })));
+      const room = bounds(canonicalRoom);
+      setWidthInput(valueForInput(room.maxX - room.minX, unit));
+      setDepthInput(valueForInput(room.maxY - room.minY, unit));
+      setDraft([]);
+      setSelectedFixtureId(null);
+      setSelectedWall(null);
+      setMode('select');
+      setRoomEditing(true);
+      fitToView(canonicalRoom);
+    };
+    window.addEventListener(PROJECT_ROOM_EDIT_EVENT, openRoomEditor);
+    return () => window.removeEventListener(PROJECT_ROOM_EDIT_EVENT, openRoomEditor);
+  }, [activeProject?.id, activeDesign?.id, projectRoomSignature, unit]);
 
   useEffect(() => {
     if (!workspace.hydrated || !activeDesign || loadedDesignRef.current !== activeDesign.id) return;
@@ -176,6 +209,7 @@ export default function PersistentPlanner() {
   }
 
   function createRectangle() {
+    if (!roomEditing) return;
     const width = parseMeasurement(widthInput, unit);
     const depth = parseMeasurement(depthInput, unit);
     if (!width || !depth || width < 300 || depth < 300) return;
@@ -290,6 +324,7 @@ export default function PersistentPlanner() {
   }
 
   function beginDraw() {
+    if (!roomEditing) return;
     setDraft([]);
     setSelectedFixtureId(null);
     setSelectedWall(null);
@@ -302,6 +337,25 @@ export default function PersistentPlanner() {
 
   function clearDraft() {
     setDraft([]);
+  }
+
+  function finishRoomEdit() {
+    if (vertices.length < 3) return;
+    workspace.updateProjectRoom(vertices);
+    setRoomEditing(false);
+    setMode('select');
+    setDraft([]);
+    setSelectedWall(null);
+  }
+
+  function cancelRoomEdit() {
+    const canonicalRoom = workspace.roomVertices.length ? workspace.roomVertices : activeDesign?.vertices ?? initial;
+    setVertices(canonicalRoom.map((point) => ({ ...point })));
+    setRoomEditing(false);
+    setMode('select');
+    setDraft([]);
+    setSelectedWall(null);
+    fitToView(canonicalRoom);
   }
 
   function canvasPointerDown(event: React.PointerEvent<SVGSVGElement>) {
@@ -326,7 +380,7 @@ export default function PersistentPlanner() {
       return;
     }
 
-    if (mode !== 'draw') {
+    if (!roomEditing || mode !== 'draw') {
       setSelectedFixtureId(null);
       setSelectedWall(null);
       return;
@@ -403,7 +457,7 @@ export default function PersistentPlanner() {
   }
 
   function startVertexDrag(event: React.PointerEvent<SVGCircleElement>, vertexIndex: number) {
-    if (mode !== 'select') return;
+    if (!roomEditing || mode !== 'select') return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
     setSelectedFixtureId(null);
@@ -428,7 +482,7 @@ export default function PersistentPlanner() {
   }
 
   function setWallLength(raw: string) {
-    if (selectedWall === null) return;
+    if (!roomEditing || selectedWall === null) return;
     const nextLength = parseMeasurement(raw, unit);
     if (!nextLength || nextLength < 100) return;
     setVertices((items) => {
@@ -483,7 +537,7 @@ export default function PersistentPlanner() {
       <header className="topbar">
         <div>
           <p className="eyebrow">{workspace.activeHome?.name ?? 'Home'} / {activeProject?.name ?? 'Project'}</p>
-          <h1>{activeDesign?.name ?? 'Design'}</h1>
+          <h1>{roomName} · {activeDesign?.name ?? 'Design'}</h1>
         </div>
         <div className="topbar-actions">
           <span className="save-status">{saveText}</span>
@@ -508,20 +562,29 @@ export default function PersistentPlanner() {
 
       <main className="workspace">
         <aside className="tool-panel left-panel">
-          <h2>Room shape</h2>
-          <div className="mode-buttons">
-            <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
-            <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Draw walls</button>
-            <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
-          </div>
-          <p className="helper">Draw any closed shape. Walls snap to a 1-inch grid and common angles.</p>
-
-          <h2>Rectangle shortcut</h2>
-          <div className="field-grid">
-            <label><span>Width</span><input value={widthInput} onChange={(event) => setWidthInput(event.target.value)} /></label>
-            <label><span>Depth</span><input value={depthInput} onChange={(event) => setDepthInput(event.target.value)} /></label>
-          </div>
-          <button className="primary-action" type="button" onClick={createRectangle}>Create rectangle</button>
+          {roomEditing ? <>
+            <h2>Project room</h2>
+            <p className="helper"><strong>{roomName}</strong> is being edited at the project level. Actual and every Proposal share this boundary.</p>
+            <div className="mode-buttons">
+              <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Adjust</button>
+              <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Redraw</button>
+              <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+            </div>
+            <h2>Rectangle shortcut</h2>
+            <div className="field-grid">
+              <label><span>Width</span><input value={widthInput} onChange={(event) => setWidthInput(event.target.value)} /></label>
+              <label><span>Depth</span><input value={depthInput} onChange={(event) => setDepthInput(event.target.value)} /></label>
+            </div>
+            <button className="primary-action" type="button" onClick={createRectangle}>Use rectangle</button>
+            <div className="property-actions"><button onClick={cancelRoomEdit}>Cancel</button><button onClick={finishRoomEdit}>Save room</button></div>
+          </> : <>
+            <h2>Layout tools</h2>
+            <div className="mode-buttons">
+              <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
+              <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+            </div>
+            <p className="helper">The room boundary is locked to this project. Use Edit room in the project bar to change its name or shape.</p>
+          </>}
 
           <h2>Fixed objects</h2>
           <div className="object-buttons">
@@ -539,27 +602,28 @@ export default function PersistentPlanner() {
 
         <section className="canvas-panel">
           <div className="canvas-toolbar">
-            <span>{mode === 'draw' ? `${Math.max(0, draft.length - 1)} drawn line${draft.length === 2 ? '' : 's'}` : `${formatMeasurement(roomWidth, unit)} × ${formatMeasurement(roomDepth, unit)} envelope`}</span>
+            <span>{roomEditing ? `Editing ${roomName} · ${mode === 'draw' ? `${Math.max(0, draft.length - 1)} drawn line${draft.length === 2 ? '' : 's'}` : `${formatMeasurement(roomWidth, unit)} × ${formatMeasurement(roomDepth, unit)}`}` : `${roomName} · ${formatMeasurement(roomWidth, unit)} × ${formatMeasurement(roomDepth, unit)}`}</span>
             <div className="canvas-controls">
               {mode === 'draw' && <>
                 <button type="button" onClick={undoLastDraftLine} disabled={draft.length < 2}>Undo line</button>
                 <button type="button" onClick={clearDraft} disabled={draft.length === 0}>Clear</button>
               </>}
+              {roomEditing && <button type="button" onClick={finishRoomEdit}>Done room</button>}
               <button type="button" onClick={() => fitToView()}>Fit</button>
             </div>
           </div>
-          <svg ref={svgRef} className={`design-canvas mode-${mode}`} viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`} onPointerDown={canvasPointerDown} onPointerMove={canvasPointerMove} onPointerUp={canvasPointerUp} onPointerCancel={canvasPointerUp} onWheel={wheel}>
+          <svg ref={svgRef} className={`design-canvas mode-${mode} ${roomEditing ? 'room-editing' : 'room-locked'}`} viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`} onPointerDown={canvasPointerDown} onPointerMove={canvasPointerMove} onPointerUp={canvasPointerUp} onPointerCancel={canvasPointerUp} onWheel={wheel}>
             <defs><pattern id="minorGrid" width={GRID_MM * 6} height={GRID_MM * 6} patternUnits="userSpaceOnUse"><path d={`M ${GRID_MM * 6} 0 L 0 0 0 ${GRID_MM * 6}`} className="grid-line" fill="none" /></pattern></defs>
             <rect className="canvas-background" x={view.x} y={view.y} width={view.width} height={view.height} fill="url(#minorGrid)" />
             {vertices.length >= 3 && <polygon className="room-fill" points={points} />}
             {vertices.map((start, index) => {
               const end = vertices[(index + 1) % vertices.length];
               return <g key={`wall-${index}`}>
-                <line className={`wall-line ${selectedWall === index ? 'selected' : ''}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y} onPointerDown={(event) => { if (mode === 'select') { event.stopPropagation(); setSelectedWall(index); setSelectedFixtureId(null); } }} />
+                <line className={`wall-line ${selectedWall === index ? 'selected' : ''}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y} onPointerDown={(event) => { if (roomEditing && mode === 'select') { event.stopPropagation(); setSelectedWall(index); setSelectedFixtureId(null); } }} />
                 <text className="dimension-label wall-dimension" x={(start.x + end.x) / 2} y={(start.y + end.y) / 2 - 45} textAnchor="middle" pointerEvents="none">{formatMeasurement(distance(start, end), unit)}</text>
               </g>;
             })}
-            {mode === 'select' && vertices.map((point, index) => <circle key={`vertex-${index}`} className="vertex-handle" cx={point.x} cy={point.y} r="55" onPointerDown={(event) => startVertexDrag(event, index)} onPointerMove={moveVertex} onPointerUp={stopDrag} onPointerCancel={stopDrag} />)}
+            {roomEditing && mode === 'select' && vertices.map((point, index) => <circle key={`vertex-${index}`} className="vertex-handle" cx={point.x} cy={point.y} r="55" onPointerDown={(event) => startVertexDrag(event, index)} onPointerMove={moveVertex} onPointerUp={stopDrag} onPointerCancel={stopDrag} />)}
             {draft.length > 0 && <g className="draft-shape"><polyline points={draftPoints} />{draft.map((point, index) => <circle key={index} cx={point.x} cy={point.y} r={index === 0 ? 80 : 55} className={index === 0 ? 'draft-start' : ''} />)}</g>}
             {fixtures.map((fixture) => {
               const cx = fixture.xMm + fixture.widthMm / 2;
@@ -623,10 +687,17 @@ export default function PersistentPlanner() {
       </div>}
 
       <nav className="mobile-actions">
-        <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
-        <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Draw</button>
-        <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
-        <button type="button" onClick={openCustomObjectCreator}>+ Object</button>
+        {roomEditing ? <>
+          <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Adjust</button>
+          <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Redraw</button>
+          <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+          <button type="button" onClick={finishRoomEdit}>Done</button>
+        </> : <>
+          <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
+          <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+          <button type="button" onClick={openCustomObjectCreator}>+ Object</button>
+          <button type="button" onClick={() => fitToView()}>Fit</button>
+        </>}
       </nav>
     </div>
   );
