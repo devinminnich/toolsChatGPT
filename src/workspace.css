@@ -54,7 +54,13 @@
 .scope-row p { margin: 0; color: #64748b; font-size: .78rem; line-height: 1.4; }
 .scope-row select, .estimate-selects select { min-height: 40px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 6px 8px; }
 .scope-category { font-size: .67rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
+.scope-copy { min-width: 0; }
+.scope-edit-title,
+.scope-edit-description { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px 9px; font: inherit; color: #0f172a; background: #fff; }
+.scope-edit-title { min-height: 40px; font-weight: 700; margin: 3px 0 6px; }
+.scope-edit-description { resize: vertical; min-height: 56px; line-height: 1.4; font-size: .78rem; }
 .status-ignored { opacity: .5; }
+.status-edited { background: #f8fafc; }
 .material-lines { display: grid; gap: 0; }
 .material-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid #eef2f7; }
 .material-row:first-child { border-top: 0; }
