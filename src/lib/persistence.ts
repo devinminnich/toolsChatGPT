@@ -1,4 +1,5 @@
 import type { WorkspaceData } from '../domain/project';
+import { selectNewestWorkspace } from '../domain/workspaceSync';
 import { supabase } from './supabase';
 
 const STORAGE_KEY = 'home-renovation-planner.workspace.v1';
@@ -9,6 +10,7 @@ export type PersistenceStatus = 'idle' | 'saving' | 'saved' | 'offline' | 'error
 export interface WorkspacePersistence {
   load(): Promise<WorkspaceData | null>;
   save(data: WorkspaceData): Promise<void>;
+  sync(): Promise<WorkspaceData | null>;
 }
 
 function parseWorkspace(raw: string | null): WorkspaceData | null {
@@ -19,12 +21,6 @@ function parseWorkspace(raw: string | null): WorkspaceData | null {
   } catch {
     return null;
   }
-}
-
-function newest(a: WorkspaceData | null, b: WorkspaceData | null) {
-  if (!a) return b;
-  if (!b) return a;
-  return Date.parse(a.updatedAt) >= Date.parse(b.updatedAt) ? a : b;
 }
 
 function publishWorkspace(data: WorkspaceData) {
@@ -53,7 +49,7 @@ class LocalFirstWorkspacePersistence implements WorkspacePersistence {
 
       if (error) return local;
       const cloud = data?.data as WorkspaceData | undefined;
-      const selected = newest(local, cloud?.schemaVersion === 1 ? cloud : null);
+      const selected = selectNewestWorkspace(local, cloud?.schemaVersion === 1 ? cloud : null);
       if (selected) localStorage.setItem(STORAGE_KEY, JSON.stringify(selected));
       return selected;
     } catch {
@@ -76,6 +72,45 @@ class LocalFirstWorkspacePersistence implements WorkspacePersistence {
       updated_at: data.updatedAt,
     });
     if (error) throw error;
+  }
+
+  async sync(): Promise<WorkspaceData | null> {
+    const local = parseWorkspace(localStorage.getItem(STORAGE_KEY));
+    if (!supabase || isOffline()) return local;
+
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user) return local;
+
+      const { data, error } = await supabase
+        .from('workspace_documents')
+        .select('data')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+
+      const cloud = data?.data as WorkspaceData | undefined;
+      const selected = selectNewestWorkspace(local, cloud?.schemaVersion === 1 ? cloud : null);
+      if (!selected) return null;
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(selected));
+      publishWorkspace(selected);
+
+      const cloudUpdatedAt = cloud?.schemaVersion === 1 ? cloud.updatedAt : null;
+      if (selected.updatedAt !== cloudUpdatedAt) {
+        const { error: saveError } = await supabase.from('workspace_documents').upsert({
+          user_id: user.id,
+          data: selected,
+          updated_at: selected.updatedAt,
+        });
+        if (saveError) throw saveError;
+      }
+
+      return selected;
+    } catch {
+      return local;
+    }
   }
 }
 
