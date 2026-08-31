@@ -1,0 +1,40 @@
+.comparison-viewer-card {
+  overflow: hidden;
+}
+
+.comparison-viewer-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.comparison-viewer-heading h3 { margin-bottom: 2px; }
+.comparison-viewer-heading p { margin: 0; }
+.comparison-legend { display: flex; gap: 8px; flex-wrap: wrap; font-size: .72rem; }
+.comparison-legend span { border-radius: 999px; padding: 4px 8px; font-weight: 650; }
+.legend-existing { background: #e2e8f0; color: #334155; }
+.legend-proposed { background: #dbeafe; color: #1d4ed8; }
+.comparison-canvas-wrap { width: 100%; height: min(360px, 42vh); min-height: 220px; border: 1px solid #dbe2ea; border-radius: 10px; overflow: hidden; background: #f8fafc; }
+.comparison-canvas { display: block; width: 100%; height: 100%; }
+.compare-room { stroke-width: 35; vector-effect: non-scaling-stroke; }
+.existing-layer .compare-room { fill: #f8fafc; stroke: #64748b; }
+.proposed-layer .compare-room { fill: #eff6ff; stroke: #2563eb; }
+.compare-fixture rect { stroke-width: 16; vector-effect: non-scaling-stroke; }
+.existing-layer .compare-fixture rect { fill: #e2e8f0; stroke: #64748b; }
+.proposed-layer .compare-fixture rect { fill: #dbeafe; stroke: #2563eb; }
+.compare-fixture text { font-size: 85px; font-weight: 700; pointer-events: none; }
+.existing-layer .compare-fixture text { fill: #334155; }
+.proposed-layer .compare-fixture text { fill: #1e40af; }
+.comparison-divider { stroke: #111827; stroke-width: 3; vector-effect: non-scaling-stroke; stroke-dasharray: 5 4; }
+.comparison-slider-label { display: grid; grid-template-columns: auto minmax(0, 1fr) 42px; align-items: center; gap: 10px; margin-top: 10px; font-size: .75rem; color: #64748b; }
+.comparison-slider-label input { width: 100%; }
+.comparison-slider-label strong { color: #334155; text-align: right; }
+
+@media (max-width: 640px) {
+  .comparison-viewer-heading { display: grid; }
+  .comparison-canvas-wrap { height: 250px; min-height: 200px; }
+  .comparison-slider-label { grid-template-columns: 1fr 38px; }
+  .comparison-slider-label > span { grid-column: 1 / -1; }
+}
