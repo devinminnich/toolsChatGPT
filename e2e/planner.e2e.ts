@@ -1,4 +1,17 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+async function addDefaultObject(page: Page, isMobile: boolean, name: string) {
+  if (isMobile) {
+    await page.getByRole('button', { name: '+ Object', exact: true }).click();
+    const library = page.getByRole('dialog', { name: 'Object library' });
+    await library.getByText('Bathroom & plumbing', { exact: true }).click();
+    await library.getByRole('button', { name: `+ ${name}`, exact: true }).click();
+    await expect(library).toHaveCount(0);
+  } else {
+    await page.getByText('Bathroom & plumbing', { exact: true }).click();
+    await page.getByRole('button', { name: `+ ${name}`, exact: true }).click();
+  }
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./');
@@ -75,15 +88,7 @@ test('branches Existing into Proposed and switches the complete comparison view'
 
 test('detects a proposed fixture addition and generates scope', async ({ page, isMobile }) => {
   await page.getByRole('button', { name: '+ Proposed option' }).click();
-  if (isMobile) {
-    await page.getByRole('button', { name: '+ Object' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Create custom object' });
-    await dialog.getByLabel('Custom object name').fill('Scope test object');
-    await dialog.getByRole('button', { name: 'Create object' }).click();
-    await expect(dialog).toHaveCount(0);
-  } else {
-    await page.getByRole('button', { name: '+ Shower' }).click();
-  }
+  await addDefaultObject(page, isMobile, 'Walk-in shower');
   await page.getByRole('button', { name: 'Review project' }).click();
   await expect(page.getByRole('heading', { name: 'Design changes' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Suggested scope' })).toBeVisible();
@@ -91,15 +96,7 @@ test('detects a proposed fixture addition and generates scope', async ({ page, i
 
 test('supports exact fixture position rotation and duplication', async ({ page, isMobile }) => {
   await page.getByRole('button', { name: '+ Proposed option' }).click();
-  if (isMobile) {
-    await page.getByRole('button', { name: '+ Object' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Create custom object' });
-    await dialog.getByLabel('Custom object name').fill('Placement test object');
-    await dialog.getByRole('button', { name: 'Create object' }).click();
-    await expect(dialog).toHaveCount(0);
-  } else {
-    await page.getByRole('button', { name: '+ Shower' }).click();
-  }
+  await addDefaultObject(page, isMobile, 'Walk-in shower');
 
   await page.getByLabel('Units').selectOption('in');
   const properties = page.locator('.properties-panel.is-open');
