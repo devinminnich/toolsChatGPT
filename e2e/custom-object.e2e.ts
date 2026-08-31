@@ -24,10 +24,12 @@ test('creates a named custom object centered in the room without asking for plac
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Linen cabinet' })).toBeVisible();
   await expect(page.locator('.fixture.selected text').first()).toHaveText('Linen cabinet');
-  await expect(page.getByLabel('Width')).toHaveValue('30');
-  await expect(page.getByLabel('Depth')).toHaveValue('18');
-  await expect(page.getByLabel('X position')).toHaveValue('71');
-  await expect(page.getByLabel('Y position')).toHaveValue('37');
+
+  const properties = page.locator('.properties-panel.is-open');
+  await expect(properties.getByLabel('Width')).toHaveValue('30');
+  await expect(properties.getByLabel('Depth')).toHaveValue('18');
+  await expect(properties.getByLabel('X position')).toHaveValue('71');
+  await expect(properties.getByLabel('Y position')).toHaveValue('37');
 });
 
 test('requires a custom object name before creation', async ({ page, isMobile }) => {
