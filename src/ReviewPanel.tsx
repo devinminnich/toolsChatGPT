@@ -5,6 +5,7 @@ import { diffDesigns } from './domain/designDiff';
 import { estimateScope, type EstimateMode, type QualityTier } from './domain/estimating';
 import { calculateMaterials } from './domain/materials';
 import { buildEstimatePdfSections, buildRfqPdfSections } from './domain/pdfContent';
+import { appendProjectActivity, createProjectActivity } from './domain/projectActivity';
 import { generateRfq } from './domain/rfq';
 import { inferScope, type ScopeSuggestion } from './domain/scopeInference';
 import { nowIso, type SavedContractorQuote, type ScopeDecisionStatus, type ScopeEdit, type WorkspaceData } from './domain/project';
@@ -70,6 +71,7 @@ export default function ReviewPanel() {
     scopeStatuses: Record<string, ScopeDecisionStatus>,
     scopeEdits: Record<string, ScopeEdit>,
     contractorQuotes: SavedContractorQuote[],
+    activity?: { type: 'scope-updated' | 'quote-saved'; title: string; detail?: string },
   ) {
     if (!workspace || !review?.project) return;
     const now = nowIso();
@@ -78,10 +80,16 @@ export default function ReviewPanel() {
       updatedAt: now,
       homes: workspace.homes.map((home) => ({
         ...home,
-        projects: home.projects.map((project) => project.id !== review.project.id ? project : {
-          ...project,
-          updatedAt: now,
-          review: { scopeStatuses, scopeEdits, contractorQuotes },
+        projects: home.projects.map((project) => {
+          if (project.id !== review.project.id) return project;
+          const updated = {
+            ...project,
+            updatedAt: now,
+            review: { scopeStatuses, scopeEdits, contractorQuotes },
+          };
+          return activity
+            ? appendProjectActivity(updated, createProjectActivity(activity.type, activity.title, activity.detail))
+            : updated;
         }),
       })),
     };
@@ -91,10 +99,16 @@ export default function ReviewPanel() {
 
   function setScopeStatus(scopeId: string, status: ScopeDecisionStatus) {
     if (!review?.project) return;
+    const scopeItem = review.scope.find((item) => item.id === scopeId);
     persistProjectReview(
       { ...(review.project.review?.scopeStatuses ?? {}), [scopeId]: status },
       review.project.review?.scopeEdits ?? {},
       review.project.review?.contractorQuotes ?? [],
+      {
+        type: 'scope-updated',
+        title: 'Scope decision updated',
+        detail: `${scopeItem?.title ?? 'Scope item'} → ${status}`,
+      },
     );
   }
 
@@ -113,13 +127,19 @@ export default function ReviewPanel() {
   function saveQuote(quote: SavedContractorQuote) {
     if (!review?.project) return;
     const current = review.project.review?.contractorQuotes ?? [];
-    const nextQuotes = current.some((item) => item.id === quote.id)
+    const isUpdate = current.some((item) => item.id === quote.id);
+    const nextQuotes = isUpdate
       ? current.map((item) => item.id === quote.id ? quote : item)
       : [quote, ...current];
     persistProjectReview(
       review.project.review?.scopeStatuses ?? {},
       review.project.review?.scopeEdits ?? {},
       nextQuotes,
+      {
+        type: 'quote-saved',
+        title: isUpdate ? 'Contractor quote updated' : 'Contractor quote saved',
+        detail: `${quote.contractorName}${quote.total !== undefined ? ` · ${currency(quote.total)}` : ''}`,
+      },
     );
   }
 
