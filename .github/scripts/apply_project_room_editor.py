@@ -1,0 +1,179 @@
+from pathlib import Path
+
+path = Path('src/PersistentPlanner.tsx')
+text = path.read_text()
+
+def repl(old: str, new: str):
+    global text
+    if old not in text:
+        if new in text:
+            return
+        raise SystemExit('Missing expected snippet: ' + old[:120])
+    text = text.replace(old, new, 1)
+
+repl(
+    "import { DisplayUnit, formatMeasurement, inchesToMm, parseCoordinate, parseMeasurement, valueForCoordinateInput, valueForInput } from './lib/units';",
+    "import { DisplayUnit, formatMeasurement, inchesToMm, parseCoordinate, parseMeasurement, valueForCoordinateInput, valueForInput } from './lib/units';\nimport { PROJECT_ROOM_EDIT_EVENT } from './lib/projectRoomEvents';",
+)
+repl(
+    "  const [mode, setMode] = useState<Mode>('select');\n  const [drag, setDrag] = useState<DragState>(null);",
+    "  const [mode, setMode] = useState<Mode>('select');\n  const [roomEditing, setRoomEditing] = useState(false);\n  const [drag, setDrag] = useState<DragState>(null);",
+)
+repl(
+    "  const roomBounds = useMemo(() => bounds(vertices), [vertices]);\n  const roomWidth = roomBounds.maxX - roomBounds.minX;",
+    "  const roomBounds = useMemo(() => bounds(vertices), [vertices]);\n  const roomName = activeProject?.roomName ?? activeProject?.name ?? 'Room';\n  const projectRoomSignature = workspace.roomVertices.map((point) => `${point.x}:${point.y}`).join('|');\n  const roomWidth = roomBounds.maxX - roomBounds.minX;",
+)
+old_effect = """  useEffect(() => {
+    if (!workspace.hydrated || !activeDesign) return;
+    if (loadedDesignRef.current === activeDesign.id) return;
+    loadedDesignRef.current = activeDesign.id;
+    setVertices(activeDesign.vertices);
+    setFixtures(activeDesign.fixtures);
+    const nextBounds = bounds(activeDesign.vertices);
+    const width = Math.max(nextBounds.maxX - nextBounds.minX, 1000);
+    const height = Math.max(nextBounds.maxY - nextBounds.minY, 1000);
+    const pad = Math.max(width, height) * 0.16 + 250;
+    setView({ x: nextBounds.minX - pad, y: nextBounds.minY - pad, width: width + pad * 2, height: height + pad * 2 });
+    setWidthInput(valueForInput(width, unit));
+    setDepthInput(valueForInput(height, unit));
+    setSelectedFixtureId(null);
+    setSelectedWall(null);
+  }, [workspace.hydrated, activeDesign?.id]);
+"""
+new_effect = """  useEffect(() => {
+    if (!workspace.hydrated || !activeDesign) return;
+    if (loadedDesignRef.current === activeDesign.id) return;
+    loadedDesignRef.current = activeDesign.id;
+    const canonicalRoom = workspace.roomVertices.length ? workspace.roomVertices : activeDesign.vertices;
+    setVertices(canonicalRoom);
+    setFixtures(activeDesign.fixtures);
+    const nextBounds = bounds(canonicalRoom);
+    const width = Math.max(nextBounds.maxX - nextBounds.minX, 1000);
+    const height = Math.max(nextBounds.maxY - nextBounds.minY, 1000);
+    const pad = Math.max(width, height) * 0.16 + 250;
+    setView({ x: nextBounds.minX - pad, y: nextBounds.minY - pad, width: width + pad * 2, height: height + pad * 2 });
+    setWidthInput(valueForInput(width, unit));
+    setDepthInput(valueForInput(height, unit));
+    setSelectedFixtureId(null);
+    setSelectedWall(null);
+    setRoomEditing(false);
+  }, [workspace.hydrated, activeDesign?.id, activeProject?.id]);
+
+  useEffect(() => {
+    if (!workspace.hydrated || roomEditing || !workspace.roomVertices.length) return;
+    const localSignature = vertices.map((point) => `${point.x}:${point.y}`).join('|');
+    if (localSignature === projectRoomSignature) return;
+    setVertices(workspace.roomVertices);
+    fitToView(workspace.roomVertices);
+  }, [projectRoomSignature, activeProject?.id, roomEditing]);
+
+  useEffect(() => {
+    const openRoomEditor = () => {
+      if (!activeProject) return;
+      const canonicalRoom = workspace.roomVertices.length ? workspace.roomVertices : activeDesign?.vertices ?? vertices;
+      setVertices(canonicalRoom.map((point) => ({ ...point })));
+      const room = bounds(canonicalRoom);
+      setWidthInput(valueForInput(room.maxX - room.minX, unit));
+      setDepthInput(valueForInput(room.maxY - room.minY, unit));
+      setDraft([]);
+      setSelectedFixtureId(null);
+      setSelectedWall(null);
+      setMode('select');
+      setRoomEditing(true);
+      fitToView(canonicalRoom);
+    };
+    window.addEventListener(PROJECT_ROOM_EDIT_EVENT, openRoomEditor);
+    return () => window.removeEventListener(PROJECT_ROOM_EDIT_EVENT, openRoomEditor);
+  }, [activeProject?.id, activeDesign?.id, projectRoomSignature, unit]);
+"""
+repl(old_effect, new_effect)
+repl("  function createRectangle() {\n    const width = parseMeasurement(widthInput, unit);", "  function createRectangle() {\n    if (!roomEditing) return;\n    const width = parseMeasurement(widthInput, unit);")
+repl("  function beginDraw() {\n    setDraft([]);", "  function beginDraw() {\n    if (!roomEditing) return;\n    setDraft([]);")
+repl(
+    "  function clearDraft() {\n    setDraft([]);\n  }",
+    "  function clearDraft() {\n    setDraft([]);\n  }\n\n  function finishRoomEdit() {\n    if (vertices.length < 3) return;\n    workspace.updateProjectRoom(vertices);\n    setRoomEditing(false);\n    setMode('select');\n    setDraft([]);\n    setSelectedWall(null);\n  }\n\n  function cancelRoomEdit() {\n    const canonicalRoom = workspace.roomVertices.length ? workspace.roomVertices : activeDesign?.vertices ?? initial;\n    setVertices(canonicalRoom.map((point) => ({ ...point })));\n    setRoomEditing(false);\n    setMode('select');\n    setDraft([]);\n    setSelectedWall(null);\n    fitToView(canonicalRoom);\n  }",
+)
+repl("    if (mode !== 'draw') {", "    if (!roomEditing || mode !== 'draw') {")
+repl("  function startVertexDrag(event: React.PointerEvent<SVGCircleElement>, vertexIndex: number) {\n    if (mode !== 'select') return;", "  function startVertexDrag(event: React.PointerEvent<SVGCircleElement>, vertexIndex: number) {\n    if (!roomEditing || mode !== 'select') return;")
+repl("  function setWallLength(raw: string) {\n    if (selectedWall === null) return;", "  function setWallLength(raw: string) {\n    if (!roomEditing || selectedWall === null) return;")
+repl("          <h1>{activeDesign?.name ?? 'Design'}</h1>", "          <h1>{roomName} · {activeDesign?.name ?? 'Design'}</h1>")
+
+old_panel = """          <h2>Room shape</h2>
+          <div className="mode-buttons">
+            <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
+            <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Draw walls</button>
+            <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+          </div>
+          <p className="helper">Draw any closed shape. Walls snap to a 1-inch grid and common angles.</p>
+
+          <h2>Rectangle shortcut</h2>
+          <div className="field-grid">
+            <label><span>Width</span><input value={widthInput} onChange={(event) => setWidthInput(event.target.value)} /></label>
+            <label><span>Depth</span><input value={depthInput} onChange={(event) => setDepthInput(event.target.value)} /></label>
+          </div>
+          <button className="primary-action" type="button" onClick={createRectangle}>Create rectangle</button>
+
+          <h2>Fixed objects</h2>"""
+new_panel = """          {roomEditing ? <>
+            <h2>Project room</h2>
+            <p className="helper"><strong>{roomName}</strong> is being edited at the project level. Actual and every Proposal share this boundary.</p>
+            <div className="mode-buttons">
+              <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Adjust</button>
+              <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Redraw</button>
+              <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+            </div>
+            <h2>Rectangle shortcut</h2>
+            <div className="field-grid">
+              <label><span>Width</span><input value={widthInput} onChange={(event) => setWidthInput(event.target.value)} /></label>
+              <label><span>Depth</span><input value={depthInput} onChange={(event) => setDepthInput(event.target.value)} /></label>
+            </div>
+            <button className="primary-action" type="button" onClick={createRectangle}>Use rectangle</button>
+            <div className="property-actions"><button onClick={cancelRoomEdit}>Cancel</button><button onClick={finishRoomEdit}>Save room</button></div>
+          </> : <>
+            <h2>Layout tools</h2>
+            <div className="mode-buttons">
+              <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
+              <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+            </div>
+            <p className="helper">The room boundary is locked to this project. Use Edit room in the project bar to change its name or shape.</p>
+          </>}
+
+          <h2>Fixed objects</h2>"""
+repl(old_panel, new_panel)
+repl("            <span>{mode === 'draw' ? `${Math.max(0, draft.length - 1)} drawn line${draft.length === 2 ? '' : 's'}` : `${formatMeasurement(roomWidth, unit)} × ${formatMeasurement(roomDepth, unit)} envelope`}</span>", "            <span>{roomEditing ? `Editing ${roomName} · ${mode === 'draw' ? `${Math.max(0, draft.length - 1)} drawn line${draft.length === 2 ? '' : 's'}` : `${formatMeasurement(roomWidth, unit)} × ${formatMeasurement(roomDepth, unit)}`}` : `${roomName} · ${formatMeasurement(roomWidth, unit)} × ${formatMeasurement(roomDepth, unit)}`}</span>")
+repl("              <button type=\"button\" onClick={() => fitToView()}>Fit</button>", "              {roomEditing && <button type=\"button\" onClick={finishRoomEdit}>Done room</button>}\n              <button type=\"button\" onClick={() => fitToView()}>Fit</button>")
+repl("          <svg ref={svgRef} className={`design-canvas mode-${mode}`}", "          <svg ref={svgRef} className={`design-canvas mode-${mode} ${roomEditing ? 'room-editing' : 'room-locked'}`}")
+repl("onPointerDown={(event) => { if (mode === 'select') { event.stopPropagation(); setSelectedWall(index); setSelectedFixtureId(null); } }}", "onPointerDown={(event) => { if (roomEditing && mode === 'select') { event.stopPropagation(); setSelectedWall(index); setSelectedFixtureId(null); } }}")
+repl("            {mode === 'select' && vertices.map((point, index) => <circle", "            {roomEditing && mode === 'select' && vertices.map((point, index) => <circle")
+
+old_mobile = """      <nav className="mobile-actions">
+        <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
+        <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Draw</button>
+        <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+        <button type="button" onClick={openCustomObjectCreator}>+ Object</button>
+      </nav>"""
+new_mobile = """      <nav className="mobile-actions">
+        {roomEditing ? <>
+          <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Adjust</button>
+          <button className={mode === 'draw' ? 'active' : ''} onClick={beginDraw}>Redraw</button>
+          <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+          <button type="button" onClick={finishRoomEdit}>Done</button>
+        </> : <>
+          <button className={mode === 'select' ? 'active' : ''} onClick={() => { setMode('select'); setDraft([]); }}>Select</button>
+          <button className={mode === 'pan' ? 'active' : ''} onClick={() => { setMode('pan'); setDraft([]); }}>Pan</button>
+          <button type="button" onClick={openCustomObjectCreator}>+ Object</button>
+          <button type="button" onClick={() => fitToView()}>Fit</button>
+        </>}
+      </nav>"""
+repl(old_mobile, new_mobile)
+path.write_text(text)
+
+css = Path('src/styles.css')
+styles = css.read_text()
+marker = ".room-fill { fill: #fff; pointer-events: none; }\n"
+addition = marker + ".design-canvas.room-locked .wall-line { pointer-events: none; cursor: default; }\n"
+if ".design-canvas.room-locked .wall-line" not in styles:
+    if marker not in styles:
+        raise SystemExit('Missing room-fill CSS marker')
+    styles = styles.replace(marker, addition, 1)
+css.write_text(styles)
