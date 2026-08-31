@@ -251,6 +251,14 @@ export default function PersistentPlanner() {
     setMode('draw');
   }
 
+  function undoLastDraftLine() {
+    setDraft((points) => points.length > 1 ? points.slice(0, -1) : points);
+  }
+
+  function clearDraft() {
+    setDraft([]);
+  }
+
   function canvasPointerDown(event: React.PointerEvent<SVGSVGElement>) {
     if (event.pointerType === 'touch') {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -485,8 +493,14 @@ export default function PersistentPlanner() {
 
         <section className="canvas-panel">
           <div className="canvas-toolbar">
-            <span>{formatMeasurement(roomWidth, unit)} × {formatMeasurement(roomDepth, unit)} envelope</span>
-            <div className="canvas-controls"><button onClick={() => fitToView()}>Fit</button></div>
+            <span>{mode === 'draw' ? `${Math.max(0, draft.length - 1)} drawn line${draft.length === 2 ? '' : 's'}` : `${formatMeasurement(roomWidth, unit)} × ${formatMeasurement(roomDepth, unit)} envelope`}</span>
+            <div className="canvas-controls">
+              {mode === 'draw' && <>
+                <button type="button" onClick={undoLastDraftLine} disabled={draft.length < 2}>Undo line</button>
+                <button type="button" onClick={clearDraft} disabled={draft.length === 0}>Clear</button>
+              </>}
+              <button type="button" onClick={() => fitToView()}>Fit</button>
+            </div>
           </div>
           <svg ref={svgRef} className={`design-canvas mode-${mode}`} viewBox={`${view.x} ${view.y} ${view.width} ${view.height}`} onPointerDown={canvasPointerDown} onPointerMove={canvasPointerMove} onPointerUp={canvasPointerUp} onPointerCancel={canvasPointerUp} onWheel={wheel}>
             <defs><pattern id="minorGrid" width={GRID_MM * 6} height={GRID_MM * 6} patternUnits="userSpaceOnUse"><path d={`M ${GRID_MM * 6} 0 L 0 0 0 ${GRID_MM * 6}`} className="grid-line" fill="none" /></pattern></defs>
