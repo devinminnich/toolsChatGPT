@@ -3,7 +3,6 @@ import {
   cloneAsProposed,
   createId,
   nowIso,
-  type Design,
   type FixtureInstance,
   type ObjectDefinition,
   type Point,
@@ -122,16 +121,20 @@ export function useWorkspace(initialVertices: Point[]) {
     mutateActiveProject((project) => ({ ...project, activeDesignId: designId, updatedAt: nowIso() }));
   }
 
-  function duplicateActiveDesign() {
+  function duplicateActiveDesign(vertices = activeDesign?.vertices ?? [], fixtures = activeDesign?.fixtures ?? []) {
     if (!activeDesign || !activeProject) return null;
     const existingProposalCount = activeProject.designs.filter((design) => design.kind === 'proposed').length;
     const name = `Option ${String.fromCharCode(65 + existingProposalCount)}`;
-    const next = cloneAsProposed(activeDesign, name);
+    const sourceSnapshot = { ...activeDesign, vertices, fixtures, updatedAt: nowIso() };
+    const next = cloneAsProposed(sourceSnapshot, name);
     mutateActiveProject((project) => ({
       ...project,
       activeDesignId: next.id,
       updatedAt: nowIso(),
-      designs: [...project.designs, next],
+      designs: [
+        ...project.designs.map((design) => design.id === activeDesign.id ? sourceSnapshot : design),
+        next,
+      ],
     }));
     return next;
   }
@@ -166,10 +169,6 @@ export function useWorkspace(initialVertices: Point[]) {
         : [...current.objectDefinitions, definition],
     }));
 
-    if (!fixture.definitionId) {
-      const updatedFixtures = activeDesign?.fixtures.map((item) => item.id === fixture.id ? { ...item, definitionId: definition.id } : item) ?? [];
-      if (activeDesign) updateActiveDesign(activeDesign.vertices, updatedFixtures);
-    }
     return definition;
   }
 
