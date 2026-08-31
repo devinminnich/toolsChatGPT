@@ -87,6 +87,13 @@
 .scope-row select, .estimate-selects select { min-height: 40px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; padding: 6px 8px; }
 .scope-category { font-size: .67rem; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
 .status-ignored { opacity: .5; }
+.material-lines { display: grid; gap: 0; }
+.material-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid #eef2f7; }
+.material-row:first-child { border-top: 0; }
+.material-row strong { display: block; font-size: .86rem; }
+.material-row span, .material-row small { display: block; color: #64748b; font-size: .74rem; line-height: 1.4; margin-top: 2px; }
+.material-row small { font-style: italic; }
+.material-row b { white-space: nowrap; font-size: .82rem; }
 .estimate-controls { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
 .estimate-controls h3 { margin-bottom: 2px; }
 .estimate-controls p { margin: 0; }
@@ -95,10 +102,16 @@
 .estimate-range div { background: #f8fafc; border-radius: 10px; padding: 10px; display: grid; gap: 3px; }
 .estimate-range span { font-size: .7rem; color: #64748b; }
 .estimate-range strong { font-size: 1rem; }
-.estimate-card details { border-top: 1px solid #e5e7eb; padding-top: 10px; }
-.estimate-card summary { cursor: pointer; font-size: .8rem; color: #475569; }
+.estimate-card details, .rfq-card details { border-top: 1px solid #e5e7eb; padding-top: 10px; margin-top: 10px; }
+.estimate-card summary, .rfq-card summary { cursor: pointer; font-size: .8rem; color: #475569; }
 .estimate-lines { margin-top: 9px; display: grid; gap: 6px; }
 .estimate-lines div { display: flex; justify-content: space-between; gap: 14px; font-size: .78rem; }
+.rfq-heading { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+.rfq-heading h3 { margin-bottom: 2px; }
+.rfq-heading p { margin: 0; }
+.rfq-heading > span { background: #f1f5f9; border-radius: 999px; padding: 5px 8px; font-size: .72rem; color: #475569; white-space: nowrap; }
+.rfq-card > p { color: #475569; font-size: .8rem; line-height: 1.5; }
+.rfq-card ul { padding-left: 20px; font-size: .78rem; color: #475569; line-height: 1.5; }
 
 @media (max-width: 640px) {
   .topbar-actions {
@@ -129,6 +142,7 @@
 
   .review-content { max-height: 62vh; padding: 12px; }
   .scope-row { grid-template-columns: 1fr; }
+  .material-row { grid-template-columns: 1fr; }
   .estimate-controls { display: grid; }
   .estimate-range { grid-template-columns: 1fr 1fr 1fr; }
   .estimate-range strong { font-size: .9rem; }
