@@ -32,7 +32,8 @@ function createInitialWorkspace(vertices: Point[]): WorkspaceData {
       projects: [{
         id: projectId,
         homeId,
-        name: 'Primary Bathroom',
+        name: 'Primary Bathroom Remodel',
+        roomName: 'Primary Bathroom',
         roomVertices,
         activeDesignId: designId,
         createdAt: now,
