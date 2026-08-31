@@ -43,3 +43,21 @@ test('downloads a dimensioned proposed-design PDF', async ({ page }) => {
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toContain('design.pdf');
 });
+
+test('reports offline mode without losing the loaded project', async ({ page }) => {
+  await page.evaluate(() => window.dispatchEvent(new Event('offline')));
+  await expect(page.getByText('Offline', { exact: true })).toBeVisible();
+  await expect(page.getByText(/stored on this device/i)).toBeVisible();
+  await expect(page.getByLabel('Current renovation project')).toBeVisible();
+});
+
+test('undo restores the previous saved workspace state', async ({ page }) => {
+  await page.getByRole('button', { name: '+ Project' }).click();
+  await page.getByLabel('New project name').fill('Undo Test');
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Undo Test');
+  const undo = page.getByRole('button', { name: 'Undo last saved edit' });
+  await expect(undo).toBeEnabled();
+  await undo.click();
+  await expect(page.getByLabel('Current renovation project').locator('option:checked')).toHaveText('Primary Bathroom');
+});
