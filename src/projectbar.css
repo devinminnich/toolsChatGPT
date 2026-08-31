@@ -12,6 +12,18 @@
 .undo-redo-bar button { min-height: 34px; border: 1px solid #b9c7d8; border-radius: 8px; background: #ffffff; color: #0b1f3a; padding: 5px 10px; font-weight: 650; }
 .undo-redo-bar button:not(:disabled):active { border-color: #0f9d8a; color: #087d6f; }
 .undo-redo-bar button:disabled { opacity: .38; cursor: default; }
+.activity-panel { background: #ffffff; border-bottom: 1px solid #e6ebf1; }
+.activity-toggle { width: 100%; min-height: 36px; border: 0; background: #ffffff; color: #0b1f3a; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 12px; text-align: left; }
+.activity-toggle span { font-weight: 700; }
+.activity-toggle strong { color: #607086; font-size: .72rem; font-weight: 650; }
+.activity-panel.open .activity-toggle { border-bottom: 1px solid #e6ebf1; }
+.activity-list { max-height: 220px; overflow: auto; padding: 8px 12px 10px; display: grid; gap: 8px; background: #f8fafc; }
+.activity-list > p { margin: 4px 0; color: #607086; font-size: .8rem; }
+.activity-list article { border-left: 3px solid #0f9d8a; background: #ffffff; border-radius: 0 8px 8px 0; padding: 8px 10px; }
+.activity-list article > div { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.activity-list strong { color: #0b1f3a; font-size: .8rem; }
+.activity-list time { color: #607086; font-size: .68rem; white-space: nowrap; }
+.activity-list p { margin: 4px 0 0; color: #607086; font-size: .74rem; line-height: 1.4; }
 
 @media (max-width: 640px) {
   .project-bar { padding: 6px 8px; gap: 6px; }
@@ -24,4 +36,6 @@
   .project-inline-form input { flex: 1 1 100%; width: 100%; }
   .undo-redo-bar { padding: 4px 8px; }
   .undo-redo-bar button { min-height: 40px; flex: 1; }
+  .activity-toggle { min-height: 42px; padding-inline: 8px; }
+  .activity-list { max-height: 180px; padding-inline: 8px; }
 }
