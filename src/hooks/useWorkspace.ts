@@ -8,6 +8,7 @@ import {
   type Point,
   type WorkspaceData,
 } from '../domain/project';
+import { createProjectInActiveHome, renameProject as renameWorkspaceProject, switchProject as switchWorkspaceProject } from '../domain/workspaceOperations';
 import { workspacePersistence, type PersistenceStatus } from '../lib/persistence';
 
 function createInitialWorkspace(vertices: Point[]): WorkspaceData {
@@ -188,6 +189,19 @@ export function useWorkspace(initialVertices: Point[]) {
     };
   }
 
+  function createProject(name: string, vertices: Point[]) {
+    setWorkspace((current) => createProjectInActiveHome(current, name, vertices));
+  }
+
+  function switchProject(projectId: string) {
+    setWorkspace((current) => switchWorkspaceProject(current, projectId));
+  }
+
+  function renameProject(name: string) {
+    if (!activeProject) return;
+    setWorkspace((current) => renameWorkspaceProject(current, activeProject.id, name));
+  }
+
   return {
     workspace,
     activeHome,
@@ -200,5 +214,8 @@ export function useWorkspace(initialVertices: Point[]) {
     duplicateActiveDesign,
     saveObjectDefinition,
     createFixtureFromDefinition,
+    createProject,
+    switchProject,
+    renameProject,
   };
 }
