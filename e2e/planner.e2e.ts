@@ -55,6 +55,10 @@ test('detects a proposed fixture addition and generates scope', async ({ page, i
   await page.getByRole('button', { name: '+ Proposed option' }).click();
   if (isMobile) {
     await page.getByRole('button', { name: '+ Object' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Create custom object' });
+    await dialog.getByLabel('Custom object name').fill('Scope test object');
+    await dialog.getByRole('button', { name: 'Create object' }).click();
+    await expect(dialog).toHaveCount(0);
   } else {
     await page.getByRole('button', { name: '+ Shower' }).click();
   }
@@ -65,8 +69,15 @@ test('detects a proposed fixture addition and generates scope', async ({ page, i
 
 test('supports exact fixture position rotation and duplication', async ({ page, isMobile }) => {
   await page.getByRole('button', { name: '+ Proposed option' }).click();
-  if (isMobile) await page.getByRole('button', { name: '+ Object' }).click();
-  else await page.getByRole('button', { name: '+ Shower' }).click();
+  if (isMobile) {
+    await page.getByRole('button', { name: '+ Object' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Create custom object' });
+    await dialog.getByLabel('Custom object name').fill('Placement test object');
+    await dialog.getByRole('button', { name: 'Create object' }).click();
+    await expect(dialog).toHaveCount(0);
+  } else {
+    await page.getByRole('button', { name: '+ Shower' }).click();
+  }
 
   await page.getByLabel('Units').selectOption('in');
   const x = page.getByLabel('X position');
