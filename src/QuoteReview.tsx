@@ -3,9 +3,11 @@ import { buildQuoteComparisonPdfSections } from './domain/pdfContent';
 import { compareQuoteToRfq, type ContractorQuoteScopeItem, type NormalizedContractorQuote } from './domain/quoteComparison';
 import { parseContractorQuoteText } from './domain/quoteParser';
 import type { RfqDocument } from './domain/rfq';
+import type { StoredProjectDocumentRef } from './domain/project';
 import { extractImageText } from './lib/imageTextExtraction';
 import { downloadPdf } from './lib/pdfExport';
 import { extractPdfText } from './lib/pdfTextExtraction';
+import { uploadProjectDocument } from './lib/projectDocumentStorage';
 
 function currency(value?: number) {
   if (value === undefined) return 'Not detected';
@@ -35,41 +37,65 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
     if (!quote && savedQuotes.length) setQuote(savedQuotes[0]);
   }, [savedQuotes.length]);
 
-  function analyzeText(sourceText = text) {
+  function analyzeText(sourceText = text, sourceDocument?: StoredProjectDocumentRef) {
     if (!sourceText.trim()) return;
-    setQuote(parseContractorQuoteText(sourceText));
+    const parsed = parseContractorQuoteText(sourceText);
+    setQuote(sourceDocument ? { ...parsed, sourceDocument } : parsed);
     setSavedMessage(false);
   }
 
   async function importFile(file: File | undefined) {
     if (!file) return;
     setImportStatus(`Reading ${file.name}…`);
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isText = file.type.startsWith('text/') || file.name.toLowerCase().endsWith('.txt');
+    const isImage = file.type.startsWith('image/');
+    if (!isPdf && !isText && !isImage) {
+      setImportStatus('Unsupported file type. Use PDF, TXT, JPG, PNG, WEBP, or paste text.');
+      return;
+    }
+
+    let storedDocument: StoredProjectDocumentRef | null = null;
+    let storageWarning = '';
+    const storagePromise = uploadProjectDocument(rfq.projectId, file)
+      .then((stored) => {
+        storedDocument = stored;
+      })
+      .catch((error) => {
+        console.error('Private source document upload failed', error);
+        storageWarning = ' Original file was not stored in cloud storage; local analysis still succeeded.';
+      });
+
     try {
       let extracted = '';
       let extractionNote = '';
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      if (isPdf) {
         extracted = await extractPdfText(file);
         extractionNote = 'PDF text extraction';
-      } else if (file.type.startsWith('text/') || file.name.toLowerCase().endsWith('.txt')) {
+      } else if (isText) {
         extracted = await file.text();
         extractionNote = 'text import';
-      } else if (file.type.startsWith('image/')) {
+      } else {
         extracted = await extractImageText(file, (progress) => setImportStatus(`Reading image text… ${Math.round(progress * 100)}%`));
         extractionNote = 'image OCR';
-      } else {
-        setImportStatus('Unsupported file type. Use PDF, TXT, JPG, PNG, WEBP, or paste text.');
-        return;
       }
+
+      await storagePromise;
+
       if (!extracted.trim()) {
-        setImportStatus('No readable text was found. If this is a scanned PDF, upload a page screenshot/image or paste the quote text.');
+        setImportStatus(`No readable text was found.${storedDocument ? ' The original file was stored privately.' : ''} If this is a scanned PDF, upload a page screenshot/image or paste the quote text.`);
         return;
       }
+
       setText(extracted);
-      analyzeText(extracted);
-      setImportStatus(`Imported ${file.name} using ${extractionNote}. Review every extracted field before saving.`);
+      analyzeText(extracted, storedDocument ?? undefined);
+      const storageNote = storedDocument ? ' Original file stored privately.' : storageWarning;
+      setImportStatus(`Imported ${file.name} using ${extractionNote}.${storageNote} Review every extracted field before saving.`);
     } catch (error) {
       console.error(error);
-      setImportStatus('The file could not be read. You can still paste the quote text manually.');
+      await storagePromise;
+      setImportStatus(`The file could not be read.${storedDocument ? ' The original file was stored privately.' : storageWarning} You can still paste the quote text manually.`);
     }
   }
 
@@ -116,7 +142,7 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
         <label className="quote-file-import">
           <span>Import contractor quote</span>
           <input type="file" accept="application/pdf,text/plain,image/jpeg,image/png,image/webp,.pdf,.txt,.jpg,.jpeg,.png,.webp" onChange={(event) => void importFile(event.target.files?.[0])} />
-          <small>PDF/TXT text is extracted directly. Images use on-device OCR and should be reviewed carefully.</small>
+          <small>PDF/TXT text is extracted directly. Images use on-device OCR and should be reviewed carefully. Signed-in users also retain the original file in private project storage.</small>
         </label>
         {importStatus && <p className="import-status">{importStatus}</p>}
         <div className="quote-import-separator"><span>or paste text</span></div>
@@ -124,6 +150,7 @@ export default function QuoteReview({ rfq, savedQuotes = [], onSaveQuote }: Prop
         <button type="button" className="export-button" disabled={!text.trim()} onClick={() => analyzeText()}>Analyze quote</button>
       </> : <>
         {importStatus && <p className="import-status">{importStatus}</p>}
+        {quote.sourceDocument && <p className="import-status">Source stored privately: {quote.sourceDocument.originalName}</p>}
         <div className="quote-edit-grid">
           <label><span>Contractor</span><input value={quote.contractorName} onChange={(event) => patchQuote({ contractorName: event.target.value })} /></label>
           <label><span>Total</span><input inputMode="decimal" value={quote.total ?? ''} onChange={(event) => patchQuote({ total: numberFromInput(event.target.value) })} /></label>
