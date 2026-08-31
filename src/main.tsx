@@ -6,6 +6,7 @@ import './workspace.css';
 import './auth.css';
 import './projectbar.css';
 import './comparison.css';
+import './quoteedit.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
