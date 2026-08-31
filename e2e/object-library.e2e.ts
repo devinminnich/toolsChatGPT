@@ -14,11 +14,11 @@ test('adds a default window from the household object library', async ({ page, i
     await page.getByRole('button', { name: '+ Object', exact: true }).click();
     const library = page.getByRole('dialog', { name: 'Object library' });
     await expect(library).toBeVisible();
-    await expect(library.getByText('Doors & windows', { exact: true })).toBeVisible();
+    await expect(library.locator('.object-group summary').filter({ hasText: 'Doors & windows' })).toBeVisible();
     await library.getByRole('button', { name: '+ Window · 36 in', exact: true }).click();
     await expect(library).toHaveCount(0);
   } else {
-    await expect(page.getByText('Doors & windows', { exact: true })).toBeVisible();
+    await expect(page.locator('.object-group summary').filter({ hasText: 'Doors & windows' })).toBeVisible();
     await page.getByRole('button', { name: '+ Window · 36 in', exact: true }).click();
   }
 
