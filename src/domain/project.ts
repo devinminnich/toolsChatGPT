@@ -37,6 +37,15 @@ export type Design = {
 export type ScopeDecisionStatus = 'suggested' | 'accepted' | 'edited' | 'ignored';
 export type ScopeEdit = { title?: string; description?: string; category?: string };
 
+export type StoredProjectDocumentRef = {
+  bucket: 'project-documents';
+  path: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+};
+
 export type SavedContractorQuoteScopeItem = {
   title: string;
   description?: string;
@@ -58,6 +67,7 @@ export type SavedContractorQuote = {
   exclusions: string[];
   notes: string[];
   sourceText?: string;
+  sourceDocument?: StoredProjectDocumentRef;
   importedAt: string;
 };
 
