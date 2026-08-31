@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createHome, createProjectInActiveHome, renameHome, renameProject, switchHome, switchProject } from './domain/workspaceOperations';
+import {
+  createHome,
+  createProjectInActiveHome,
+  renameHome,
+  renameProject,
+  renameProjectRoom,
+  switchHome,
+  switchProject,
+  updateProjectRoomSetup,
+} from './domain/workspaceOperations';
 import type { Point, WorkspaceData } from './domain/project';
 import { inchesToMm } from './lib/units';
+import { openProjectRoomEditor } from './lib/projectRoomEvents';
 import { WORKSPACE_SAVED_EVENT, workspacePersistence } from './lib/persistence';
 
 const DEFAULT_ROOM_WIDTH_IN = 120;
 const DEFAULT_ROOM_DEPTH_IN = 120;
+const MM_PER_IN = 25.4;
 
 function rectangleVertices(widthIn: number, depthIn: number): Point[] {
   const width = inchesToMm(widthIn);
@@ -13,14 +24,26 @@ function rectangleVertices(widthIn: number, depthIn: number): Point[] {
   return [{ x: 0, y: 0 }, { x: width, y: 0 }, { x: width, y: depth }, { x: 0, y: depth }];
 }
 
-type FormMode = 'new-project' | 'rename-project' | 'new-home' | 'rename-home' | null;
+function roomEnvelopeIn(vertices: Point[]) {
+  if (!vertices.length) return { width: DEFAULT_ROOM_WIDTH_IN, depth: DEFAULT_ROOM_DEPTH_IN };
+  const xs = vertices.map((point) => point.x);
+  const ys = vertices.map((point) => point.y);
+  return {
+    width: (Math.max(...xs) - Math.min(...xs)) / MM_PER_IN,
+    depth: (Math.max(...ys) - Math.min(...ys)) / MM_PER_IN,
+  };
+}
+
+type FormMode = 'new-project' | 'rename-project' | 'edit-room' | 'new-home' | 'rename-home' | null;
 
 export default function ProjectBar() {
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [formMode, setFormMode] = useState<FormMode>(null);
   const [projectName, setProjectName] = useState('');
+  const [roomName, setRoomName] = useState('');
   const [homeName, setHomeName] = useState('');
   const [firstProjectName, setFirstProjectName] = useState('First Project');
+  const [firstRoomName, setFirstRoomName] = useState('');
   const [roomWidthIn, setRoomWidthIn] = useState(String(DEFAULT_ROOM_WIDTH_IN));
   const [roomDepthIn, setRoomDepthIn] = useState(String(DEFAULT_ROOM_DEPTH_IN));
 
@@ -48,8 +71,10 @@ export default function ProjectBar() {
   function closeForm() {
     setFormMode(null);
     setProjectName('');
+    setRoomName('');
     setHomeName('');
     setFirstProjectName('First Project');
+    setFirstRoomName('');
     resetRoomSize();
   }
 
@@ -66,8 +91,13 @@ export default function ProjectBar() {
   }
 
   async function handleCreateProject() {
-    if (!workspace || !projectName.trim() || !validRoom) return;
-    await persist(createProjectInActiveHome(workspace, projectName, rectangleVertices(Number(roomWidthIn), Number(roomDepthIn))));
+    if (!workspace || !projectName.trim() || !roomName.trim() || !validRoom) return;
+    await persist(createProjectInActiveHome(
+      workspace,
+      projectName,
+      rectangleVertices(Number(roomWidthIn), Number(roomDepthIn)),
+      roomName,
+    ));
     closeForm();
   }
 
@@ -77,9 +107,34 @@ export default function ProjectBar() {
     closeForm();
   }
 
+  async function handleSaveRoomRectangle() {
+    if (!workspace || !activeProject || !roomName.trim() || !validRoom) return;
+    await persist(updateProjectRoomSetup(
+      workspace,
+      activeProject.id,
+      roomName,
+      rectangleVertices(Number(roomWidthIn), Number(roomDepthIn)),
+    ));
+    closeForm();
+  }
+
+  async function handleOpenRoomDesigner() {
+    if (!workspace || !activeProject || !roomName.trim()) return;
+    const next = renameProjectRoom(workspace, activeProject.id, roomName);
+    await persist(next);
+    closeForm();
+    openProjectRoomEditor(activeProject.id);
+  }
+
   async function handleCreateHome() {
-    if (!workspace || !homeName.trim() || !firstProjectName.trim() || !validRoom) return;
-    await persist(createHome(workspace, homeName, firstProjectName, rectangleVertices(Number(roomWidthIn), Number(roomDepthIn))));
+    if (!workspace || !homeName.trim() || !firstProjectName.trim() || !firstRoomName.trim() || !validRoom) return;
+    await persist(createHome(
+      workspace,
+      homeName,
+      firstProjectName,
+      rectangleVertices(Number(roomWidthIn), Number(roomDepthIn)),
+      firstRoomName,
+    ));
     closeForm();
   }
 
@@ -87,6 +142,16 @@ export default function ProjectBar() {
     if (!workspace || !activeHome || !homeName.trim()) return;
     await persist(renameHome(workspace, activeHome.id, homeName));
     closeForm();
+  }
+
+  function openRoomSetup() {
+    if (!activeProject) return;
+    const vertices = activeProject.roomVertices ?? activeProject.designs[0]?.vertices ?? [];
+    const envelope = roomEnvelopeIn(vertices);
+    setRoomName(activeProject.roomName ?? activeProject.name);
+    setRoomWidthIn(String(Math.round(envelope.width * 100) / 100));
+    setRoomDepthIn(String(Math.round(envelope.depth * 100) / 100));
+    setFormMode('edit-room');
   }
 
   if (!workspace || !activeHome || !activeProject) return null;
@@ -112,11 +177,17 @@ export default function ProjectBar() {
         </select>
       </div>
 
+      <div className="project-room-summary" aria-label="Current room">
+        <span>Room / area</span>
+        <strong>{activeProject.roomName ?? activeProject.name}</strong>
+      </div>
+
       <div className="project-actions">
         <button className="rename-home-action" type="button" onClick={() => { setHomeName(activeHome.name); setFormMode('rename-home'); }}>Rename home</button>
         <button className="rename-project-action" type="button" onClick={() => { setProjectName(activeProject.name); setFormMode('rename-project'); }}>Rename project</button>
-        <button type="button" onClick={() => { setProjectName(''); resetRoomSize(); setFormMode('new-project'); }}>+ Project</button>
-        <button type="button" onClick={() => { setHomeName(''); setFirstProjectName('First Project'); resetRoomSize(); setFormMode('new-home'); }}>+ Home</button>
+        <button type="button" onClick={openRoomSetup}>Edit room</button>
+        <button type="button" onClick={() => { setProjectName(''); setRoomName(''); resetRoomSize(); setFormMode('new-project'); }}>+ Project</button>
+        <button type="button" onClick={() => { setHomeName(''); setFirstProjectName('First Project'); setFirstRoomName(''); resetRoomSize(); setFormMode('new-home'); }}>+ Home</button>
       </div>
 
       {formMode === 'rename-project' && <div className="project-inline-form">
@@ -126,10 +197,20 @@ export default function ProjectBar() {
       </div>}
 
       {formMode === 'new-project' && <div className="project-inline-form project-setup-form">
-        <input autoFocus value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Kitchen, back patio, garage…" aria-label="New project name" />
+        <label><span>Project name</span><input autoFocus value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Bathroom remodel" aria-label="New project name" /></label>
+        <label><span>Room / area name</span><input value={roomName} onChange={(event) => setRoomName(event.target.value)} placeholder="Primary Bathroom" aria-label="New project room name" /></label>
         {roomSizeFields}
-        <p className="project-room-note">Set the room boundary for this project first. The design options will share this same room.</p>
-        <button type="button" disabled={!projectName.trim() || !validRoom} onClick={() => void handleCreateProject()}>Create project</button>
+        <p className="project-room-note">Start with a rectangle here. After creation, use Edit room to draw an exact custom room shape.</p>
+        <button type="button" disabled={!projectName.trim() || !roomName.trim() || !validRoom} onClick={() => void handleCreateProject()}>Create project</button>
+        <button type="button" onClick={closeForm}>Cancel</button>
+      </div>}
+
+      {formMode === 'edit-room' && <div className="project-inline-form project-setup-form">
+        <label><span>Room / area name</span><input autoFocus value={roomName} onChange={(event) => setRoomName(event.target.value)} aria-label="Edit room name" /></label>
+        {roomSizeFields}
+        <p className="project-room-note">The room belongs to the project and is shared by Actual and every Proposal. Save a rectangle or open the room designer for an irregular shape.</p>
+        <button type="button" disabled={!roomName.trim() || !validRoom} onClick={() => void handleSaveRoomRectangle()}>Save rectangle</button>
+        <button type="button" disabled={!roomName.trim()} onClick={() => void handleOpenRoomDesigner()}>Design custom shape</button>
         <button type="button" onClick={closeForm}>Cancel</button>
       </div>}
 
@@ -141,10 +222,10 @@ export default function ProjectBar() {
 
       {formMode === 'new-home' && <div className="project-inline-form home-inline-form project-setup-form">
         <input autoFocus value={homeName} onChange={(event) => setHomeName(event.target.value)} placeholder="Main house, cabin…" aria-label="New home name" />
-        <input value={firstProjectName} onChange={(event) => setFirstProjectName(event.target.value)} placeholder="First project" aria-label="First project name" />
+        <label><span>First project name</span><input value={firstProjectName} onChange={(event) => setFirstProjectName(event.target.value)} placeholder="Bathroom remodel" aria-label="First project name" /></label>
+        <label><span>Room / area name</span><input value={firstRoomName} onChange={(event) => setFirstRoomName(event.target.value)} placeholder="Primary Bathroom" aria-label="First room name" /></label>
         {roomSizeFields}
-        <p className="project-room-note">Set the first project room boundary now; it stays shared across its design options.</p>
-        <button type="button" disabled={!homeName.trim() || !firstProjectName.trim() || !validRoom} onClick={() => void handleCreateHome()}>Create</button>
+        <button type="button" disabled={!homeName.trim() || !firstProjectName.trim() || !firstRoomName.trim() || !validRoom} onClick={() => void handleCreateHome()}>Create</button>
         <button type="button" onClick={closeForm}>Cancel</button>
       </div>}
     </section>
