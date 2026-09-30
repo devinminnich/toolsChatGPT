@@ -924,3 +924,30 @@ button:hover:not(:disabled) {
 .import-preview p {
   overflow-wrap: anywhere;
 }
+
+.routine-set {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 18px 0;
+  min-width: 0;
+}
+.routine-set legend {
+  padding: 0 6px;
+  font-weight: 700;
+}
+.routine-set .builder-inputs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 600px) {
+  .routine-set .builder-inputs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.routine-set .row {
+  margin-top: 12px;
+}
+.set-type-control {
+  margin-bottom: 12px;
+  max-width: 220px;
+}

@@ -16,10 +16,15 @@ export type Exercise = {
 export type Prescription = {
   id: string;
   exerciseId: string;
-  sets: number;
+  rest: number;
+  sets: PlannedSet[];
+};
+export const setTypes = ["Working", "Warm-up", "Drop"] as const;
+export type PlannedSet = {
+  id: string;
+  type: (typeof setTypes)[number];
   reps: number;
   weight: number;
-  rest: number;
   duration: number;
   distance: number;
 };
@@ -67,7 +72,7 @@ export type Profile = {
   equipment: string[];
 };
 export type State = {
-  version: 1;
+  version: 2;
   profile?: Profile;
   custom: Exercise[];
   workouts: Workout[];
@@ -76,22 +81,28 @@ export type State = {
   history: Session[];
 };
 export const emptyState = (): State => ({
-  version: 1,
+  version: 2,
   custom: [],
   workouts: [],
   history: [],
 });
 export const id = () => crypto.randomUUID();
+export function plannedSet(): PlannedSet {
+  return {
+    id: id(),
+    type: "Working",
+    reps: 10,
+    weight: 0,
+    duration: 60,
+    distance: 1,
+  };
+}
 export function prescription(exerciseId: string): Prescription {
   return {
     id: id(),
     exerciseId,
-    sets: 3,
-    reps: 10,
-    weight: 0,
     rest: 90,
-    duration: 60,
-    distance: 1,
+    sets: Array.from({ length: 3 }, plannedSet),
   };
 }
 export function startSession(
@@ -114,13 +125,10 @@ export function startSession(
         id: p.id,
         exercise: structuredClone(exercise),
         rest: p.rest,
-        sets: Array.from({ length: p.sets }, () => ({
+        sets: p.sets.map((set) => ({
+          ...structuredClone(set),
           id: id(),
-          type: "Working" as const,
-          reps: p.reps,
-          weight: convertWeight(p.weight, workout.unit || "lb", unit),
-          duration: p.duration,
-          distance: p.distance,
+          weight: convertWeight(set.weight, workout.unit || "lb", unit),
         })),
       };
     }),
@@ -236,7 +244,63 @@ export function workoutInUnits(
     unit,
     exercises: workout.exercises.map((p) => ({
       ...p,
-      weight: convertWeight(p.weight, workout.unit || "lb", unit),
+      sets: p.sets.map((set) => ({
+        ...set,
+        weight: convertWeight(set.weight, workout.unit || "lb", unit),
+      })),
     })),
+  };
+}
+
+// Upgrade the old exercise-wide prescription into independent set targets.
+// Performed sessions already have nested sets and must remain unchanged.
+export function migrateState(
+  data:
+    | State
+    | (Omit<State, "version" | "workouts" | "draft"> & {
+        version: 1;
+        workouts: unknown[];
+        draft?: unknown;
+      }),
+): State {
+  if (data.version === 2) return data;
+  const migrateWorkout = (value: unknown): Workout => {
+    const workout = value as Workout;
+    return {
+      ...workout,
+      exercises: workout.exercises.map((value) => {
+        const p = value as unknown as {
+          id: string;
+          exerciseId: string;
+          rest: number;
+          sets: number;
+          weight: number;
+          reps: number;
+          duration: number;
+          distance: number;
+        };
+        if (!Number.isInteger(p.sets) || p.sets < 1 || p.sets > 50)
+          throw new Error("Saved routine set count is unsupported.");
+        return {
+          id: p.id,
+          exerciseId: p.exerciseId,
+          rest: p.rest,
+          sets: Array.from({ length: p.sets }, (_, i) => ({
+            id: `${p.id}-set-${i}`,
+            type: "Working" as const,
+            weight: p.weight,
+            reps: p.reps,
+            duration: p.duration,
+            distance: p.distance,
+          })),
+        };
+      }),
+    };
+  };
+  return {
+    ...data,
+    version: 2,
+    workouts: data.workouts.map(migrateWorkout),
+    draft: data.draft ? migrateWorkout(data.draft) : undefined,
   };
 }

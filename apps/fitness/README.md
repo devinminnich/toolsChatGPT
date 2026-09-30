@@ -20,7 +20,8 @@ For production assets: `npm run build`. Serve `dist` over HTTPS to enable the se
 - Goal/unit/equipment preferences and stored settings for the upcoming Coach.
 - 122 built-in exercise records, aliases, muscle/equipment filters and written instructions.
 - Private custom exercises with reps, time or distance metrics.
-- Manual workout builder, editable targets and exercise order.
+- Manual workout builder with ordered exercises and independent set weight, reps/time/distance and Working/Warm-up/Drop type.
+- Add, remove and reorder routine sets; edit set types during a workout. Existing routines migrate automatically without changing history.
 - Automatic recovery of unfinished workout drafts.
 - Active sessions: prefilled set controls, completion, difficulty, skip/restore and manual corrections.
 - Absolute-time rest timer, pause/resume, extend and skip.
@@ -32,7 +33,7 @@ For production assets: `npm run build`. Serve `dist` over HTTPS to enable the se
 - Workout import links and duplicate protection.
 - Production service worker caches the shell/assets for reopening without connectivity.
 
-The catalog uses common movement instructions plus specific cues. It does not yet include illustrations, demonstration videos or an external professional review. Warm-up/drop/working set types exist in the data model; advanced group/type editing is upcoming.
+The catalog uses common movement instructions plus specific cues. It does not yet include illustrations, demonstration videos or an external professional review. Warm-up/drop/working types are editable per set. Superset and circuit grouping is upcoming.
 
 ## Current boundaries
 

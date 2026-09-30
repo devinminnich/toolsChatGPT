@@ -1,4 +1,4 @@
-import { emptyState, type State } from "../domain/model";
+import { emptyState, migrateState, type State } from "../domain/model";
 const DB = "fitness-coach";
 async function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -20,13 +20,19 @@ export async function load(): Promise<State> {
         const data = request.result;
         if (
           data &&
-          (data.version !== 1 ||
+          (![1, 2].includes(data.version) ||
             !Array.isArray(data.history) ||
             !Array.isArray(data.workouts) ||
             !Array.isArray(data.custom))
         )
           reject(new Error("Saved data format is unsupported."));
-        else resolve(data || emptyState());
+        else {
+          try {
+            resolve(data ? migrateState(data) : emptyState());
+          } catch (error) {
+            reject(error);
+          }
+        }
       };
       request.onerror = () => reject(request.error);
     });

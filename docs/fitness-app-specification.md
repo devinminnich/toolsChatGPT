@@ -52,6 +52,8 @@ Acceptance: typing "chest" exposes relevant results and equipment filters immedi
 
 Templates and program prescriptions are separate from performed sessions. Starting a session snapshots the planned exercises and targets. Coach adjustments update uncompleted targets, while completed sets remain factual history.
 
+Manual routines use Workout → Exercise → ordered Set targets. Each planned set owns its weight, reps (or time/distance target), and type. Users add, remove and reorder individual sets. An exercise retains its between-set rest setting. Starting a workout snapshots each set individually; changing session values or types does not rewrite the saved routine. Existing exercise-wide targets migrate into equivalent independent sets without changing performed history.
+
 Support weight/reps, duration, distance, bodyweight, added/assisted load, calories, pace and heart rate. Store measurement units explicitly and convert at the display boundary. Weight must distinguish total bar load, per-dumbbell weight, assistance and machine-stack labels; ask when ambiguous. Missing metrics are unknown, never zero.
 
 Support warm-up/working/drop/failure sets, AMRAP, supersets, circuits and intervals. Group structure and rest placement are explicit. Log actual outcomes separately from targets, including partial/skipped sets, difficulty, optional RPE/RIR and notes. Cardio and bodyweight progress must not use incompatible lifting formulas.

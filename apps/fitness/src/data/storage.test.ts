@@ -6,8 +6,46 @@ import {
   emptyState,
   prescription,
   startSession,
+  type State,
 } from "../domain/model";
 import { catalog } from "../domain/catalog";
+it("loads previous saved routines as independent sets and persists the upgrade", async () => {
+  const legacy = {
+    ...emptyState(),
+    version: 1,
+    workouts: [
+      {
+        id: "legacy",
+        name: "Legacy routine",
+        unit: "lb",
+        exercises: [
+          {
+            id: "legacy-exercise",
+            exerciseId: "seated-leg-press",
+            sets: 2,
+            weight: 190,
+            reps: 12,
+            rest: 90,
+            duration: 60,
+            distance: 1,
+          },
+        ],
+      },
+    ],
+  };
+  await save(legacy as unknown as State);
+  const migrated = await load();
+  expect(migrated.version).toBe(2);
+  expect(
+    migrated.workouts[0].exercises[0].sets.map((s) => [s.weight, s.reps]),
+  ).toEqual([
+    [190, 12],
+    [190, 12],
+  ]);
+  migrated.workouts[0].exercises[0].sets[1].weight = 210;
+  await save(migrated);
+  expect((await load()).workouts[0].exercises[0].sets[1].weight).toBe(210);
+});
 it("recovers completed results and a timer from IndexedDB after reopen", async () => {
   let active = startSession(
     {

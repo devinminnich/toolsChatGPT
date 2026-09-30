@@ -12,11 +12,13 @@ import {
   volume,
   type Exercise,
   type Profile,
-  type Prescription,
+  setTypes,
+  type PlannedSet,
   type Session,
   type State,
   type Workout,
 } from "./domain/model";
+import { RoutineSets } from "./RoutineSets";
 import { ExcelImport } from "./ExcelImport";
 import {
   decodeWorkoutImport,
@@ -524,6 +526,26 @@ export function App() {
                                       : set.type}
                                   </span>
                                 </div>
+                                <label className="set-type-control">
+                                  Set type
+                                  <select
+                                    aria-label={`Set type for ${exercise.exercise.name} set ${si + 1}`}
+                                    value={set.type}
+                                    disabled={!!set.skipped}
+                                    onChange={(event) =>
+                                      mutateSession((s) =>
+                                        editSet(s, exercise.id, set.id, {
+                                          type: event.target
+                                            .value as PlannedSet["type"],
+                                        }),
+                                      )
+                                    }
+                                  >
+                                    {setTypes.map((type) => (
+                                      <option key={type}>{type}</option>
+                                    ))}
+                                  </select>
+                                </label>
                                 <div className="set-inputs">
                                   {exercise.exercise.metric === "reps" ? (
                                     <>
@@ -846,66 +868,19 @@ export function App() {
                               </button>
                             </div>
                           </div>
-                          <div className="builder-inputs">
-                            {(
-                              [
-                                "sets",
-                                ...(e.metric === "reps"
-                                  ? ["reps", ...(e.loaded ? ["weight"] : [])]
-                                  : [e.metric]),
-                                "rest",
-                              ] as (keyof Prescription)[]
-                            ).map((key) => (
-                              <label key={key}>
-                                {key === "weight"
-                                  ? `Weight (${editing.unit || state.profile!.unit})`
-                                  : key === "duration"
-                                    ? "Seconds"
-                                    : key === "distance"
-                                      ? "Distance (km)"
-                                      : key === "rest"
-                                        ? "Rest (sec)"
-                                        : key}
-                                <input
-                                  type="number"
-                                  min={key === "sets" ? 1 : 0}
-                                  max={key === "sets" ? 20 : undefined}
-                                  step={
-                                    key === "weight"
-                                      ? 2.5
-                                      : key === "distance"
-                                        ? 0.1
-                                        : 1
-                                  }
-                                  value={p[key]}
-                                  onChange={(ev) => {
-                                    const value = Number(ev.target.value);
-                                    if (Number.isFinite(value) && value >= 0)
-                                      setEditing({
-                                        ...editing,
-                                        exercises: editing.exercises.map((x) =>
-                                          x.id === p.id
-                                            ? {
-                                                ...x,
-                                                [key]:
-                                                  key === "sets"
-                                                    ? Math.max(
-                                                        1,
-                                                        Math.min(
-                                                          20,
-                                                          Math.floor(value),
-                                                        ),
-                                                      )
-                                                    : value,
-                                              }
-                                            : x,
-                                        ),
-                                      });
-                                  }}
-                                />
-                              </label>
-                            ))}
-                          </div>
+                          <RoutineSets
+                            exercise={e}
+                            value={p}
+                            unit={editing.unit || state.profile!.unit}
+                            onChange={(next) =>
+                              setEditing({
+                                ...editing,
+                                exercises: editing.exercises.map((x) =>
+                                  x.id === p.id ? next : x,
+                                ),
+                              })
+                            }
+                          />
                         </div>
                       );
                     })}
@@ -1121,6 +1096,7 @@ export function App() {
                                       : `${set.distance} km`
                                   : "Unlogged"}{" "}
                                 {set.difficulty && `· ${set.difficulty}`}
+                                {set.type !== "Working" && ` · ${set.type}`}
                               </p>
                             ))}
                           </div>
@@ -1347,7 +1323,7 @@ function WorkoutCard({
       <h3>{workout.name}</h3>
       <p>
         {workout.exercises.length} exercises ·{" "}
-        {workout.exercises.reduce((s, e) => s + e.sets, 0)} sets
+        {workout.exercises.reduce((s, e) => s + e.sets.length, 0)} sets
       </p>
       <div className="row">
         <button className="primary" onClick={onStart}>

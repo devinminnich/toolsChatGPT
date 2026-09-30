@@ -1,5 +1,91 @@
 import { expect, test } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+test("independent routine sets retain targets and types into the active workout", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Start training", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Build a workout", exact: false })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Search exercises" })
+    .fill("legpress");
+  await page
+    .getByRole("button", { name: "Add Seated leg press", exact: true })
+    .click();
+  for (const [index, weight, reps, type] of [
+    [1, 160, 15, "Warm-up"],
+    [2, 190, 12, "Working"],
+    [3, 150, 8, "Drop"],
+  ] as const) {
+    await page
+      .getByLabel(`Weight (lb) for Seated leg press set ${index}`, {
+        exact: true,
+      })
+      .fill(String(weight));
+    await page
+      .getByLabel(`Reps for Seated leg press set ${index}`, { exact: true })
+      .fill(String(reps));
+    await page
+      .getByLabel(`Set type for Seated leg press set ${index}`, { exact: true })
+      .selectOption(type);
+  }
+  await page.screenshot({path:`test-results/${test.info().project.name}-routine.png`,fullPage:true});
+  await page.getByRole("button", { name: "Add set", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Remove Seated leg press set 4", exact: true })
+    .click();
+  await page.reload();
+  await page
+    .locator("nav:visible")
+    .getByRole("button", { name: "Train", exact: false })
+    .click();
+  await expect(
+    page.getByLabel("Weight (lb) for Seated leg press set 2", { exact: true }),
+  ).toHaveValue("190");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(
+    page.getByLabel("Set type for Seated leg press set 3", { exact: true }),
+  ).toHaveValue("Drop");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).nth(1),
+  ).toHaveValue("190");
+  await expect(
+    page.getByRole("spinbutton", { name: "reps", exact: true }).nth(2),
+  ).toHaveValue("8");
+  await page
+    .getByLabel("Set type for Seated leg press set 1", { exact: true })
+    .selectOption("Drop");
+  await page
+    .getByRole("button", { name: "Complete set", exact: true })
+    .first()
+    .click();
+  await page.reload();
+  await expect(
+    page.getByLabel("Set type for Seated leg press set 1", { exact: true }),
+  ).toHaveValue("Drop");
+  page.once("dialog", (d) => d.accept());
+  await page
+    .getByRole("button", { name: "Finish workout", exact: true })
+    .click();
+  await page.locator("details summary").click();
+  await expect(
+    page.getByText("Set 1: 160 lb × 15 reps · Drop", { exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
 test("Excel upload reviews before saving and persists once", async ({
   page,
 }) => {
@@ -89,7 +175,10 @@ test("create, log, recover and finish a workout", async ({ page }) => {
     .click();
   await page.getByRole("textbox", { name: "Workout name" }).fill("Leg day");
   await page
-    .getByRole("spinbutton", { name: "Weight (lb)", exact: true })
+    .getByRole("spinbutton", {
+      name: "Weight (lb) for Seated leg press set 1",
+      exact: true,
+    })
     .fill("160");
   await expect(page.getByRole("status")).toContainText("Saved on this device");
   await page.reload();
