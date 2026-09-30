@@ -18,7 +18,7 @@ For production assets: `npm run build`. Serve `dist` over HTTPS to enable the se
 
 - Phone bottom navigation and desktop sidebar.
 - Goal/unit/equipment preferences and stored settings for the upcoming Coach.
-- 121 built-in exercise records, aliases, muscle/equipment filters and written instructions.
+- 122 built-in exercise records, aliases, muscle/equipment filters and written instructions.
 - Private custom exercises with reps, time or distance metrics.
 - Manual workout builder, editable targets and exercise order.
 - Automatic recovery of unfinished workout drafts.
@@ -28,6 +28,8 @@ For production assets: `npm run build`. Serve `dist` over HTTPS to enable the se
 - Previous comparable set results, completed workout history and logged load/reps volume.
 - Unit conversion for saved templates; each performed session retains its original units.
 - JSON backup export.
+- Excel template download, browser-only upload validation and set preview before adding completed workouts.
+- Workout import links and duplicate protection.
 - Production service worker caches the shell/assets for reopening without connectivity.
 
 The catalog uses common movement instructions plus specific cues. It does not yet include illustrations, demonstration videos or an external professional review. Warm-up/drop/working set types exist in the data model; advanced group/type editing is upcoming.
@@ -53,3 +55,9 @@ npm run test:offline
 Unit tests exercise search, prescription snapshots, duplicate completion, invalid values, unit conversion, historical comparability and IndexedDB recovery. Browser tests run the create/log/reload/finish flow and custom exercise persistence at desktop and phone viewports. The phone test uses Chromium emulation; physical iOS Safari validation remains required.
 
 See ../../docs/fitness-app-specification.md for the full product and next milestones.
+
+## Excel workout import
+
+In Settings, download the Excel template. Fill B4 with workout name, B5 with date (YYYY-MM-DD), and B6 with lb or kg. Starting at row 10, enter one completed set per row with exercise name, set number, weight and reps. Supported names and aliases are listed on Exercises. Saved custom rep exercises are also accepted by exact name. Use 0 for bodyweight and per-hand load for dumbbells. Number sets from 1 per exercise without gaps. Keep the template title and headers in place.
+
+Upload the .xlsx in Settings, review the preview, then choose Add to history. Cancel leaves history unchanged. Invalid rows are rejected with row numbers. Files are parsed locally and limited to 2 MB, 30 exercises and 50 sets per exercise. Identical contents generate a stable ID so reimporting cannot create duplicates. Imported workouts retain date and unit; time, duration and difficulty are unspecified. Desktop imports remain on that browser until cloud sync is implemented.

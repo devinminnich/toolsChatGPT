@@ -1,4 +1,4 @@
-const CACHE = "fitness-shell-v1";
+const CACHE = "fitness-shell-v2";
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -6,6 +6,7 @@ self.addEventListener("install", (event) => {
       await cache.addAll([
         "./",
         "./icon.svg",
+        "./workout-import-template.xlsx",
         "./manifest.webmanifest",
         "./icon-180.png",
         "./icon-192.png",

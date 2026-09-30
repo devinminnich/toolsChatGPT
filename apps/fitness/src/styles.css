@@ -895,3 +895,32 @@ button:hover:not(:disabled) {
     gap: 8px;
   }
 }
+
+.import-notice {
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: #273d22;
+  border: 1px solid #688551;
+  border-radius: 12px;
+  color: #d5edbc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.excel-import label {
+  margin-top: 20px;
+}
+.excel-import .button {
+  display: inline-block;
+  margin: 8px 0;
+}
+.import-preview {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.import-preview p {
+  overflow-wrap: anywhere;
+}

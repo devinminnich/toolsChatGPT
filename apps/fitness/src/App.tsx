@@ -17,6 +17,12 @@ import {
   type State,
   type Workout,
 } from "./domain/model";
+import { ExcelImport } from "./ExcelImport";
+import {
+  decodeWorkoutImport,
+  importWorkout,
+  workoutToken,
+} from "./domain/importWorkout";
 import { load, save } from "./data/storage";
 
 type Tab = "Today" | "Train" | "History" | "Settings";
@@ -38,6 +44,8 @@ export function App() {
   const [state, setState] = useState<State>(emptyState);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [importLink, setImportLink] = useState("");
   const [status, setStatus] = useState("Loading");
   const [tab, setTab] = useState<Tab>("Today");
   const [editing, setEditingState] = useState<Workout>();
@@ -56,8 +64,33 @@ export function App() {
   useEffect(() => {
     let alive = true;
     load()
-      .then((s) => {
+      .then(async (s) => {
         if (alive) {
+          try {
+            const token = workoutToken(location.hash);
+            if (token) {
+              const next = importWorkout(s, decodeWorkoutImport(token), [
+                ...catalog,
+                ...s.custom,
+              ]);
+              await save(next);
+              if (!alive) return;
+              setNotice(
+                next === s
+                  ? "This workout is already in your history."
+                  : "Workout added to your history.",
+              );
+              s = next;
+              window.history.replaceState(
+                null,
+                "",
+                location.pathname + location.search,
+              );
+              setTab("History");
+            }
+          } catch (e) {
+            setError(`Workout was not added: ${(e as Error).message}`);
+          }
           setState(s);
           setEditingState(s.draft);
           setReady(true);
@@ -74,6 +107,36 @@ export function App() {
       alive = false;
     };
   }, []);
+  useEffect(() => {
+    if (!ready) return;
+    const handler = () => {
+      try {
+        const token = workoutToken(location.hash);
+        if (!token) return;
+        const current = latest.current;
+        const next = importWorkout(current, decodeWorkoutImport(token), [
+          ...catalog,
+          ...current.custom,
+        ]);
+        update(next);
+        setNotice(
+          next === current
+            ? "This workout is already in your history."
+            : "Workout added to your history.",
+        );
+        window.history.replaceState(
+          null,
+          "",
+          location.pathname + location.search,
+        );
+        setTab("History");
+      } catch (e) {
+        setError(`Workout was not added: ${(e as Error).message}`);
+      }
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
+  }, [ready]);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -275,6 +338,14 @@ export function App() {
           <div className="error" role="alert">
             {error}
             <button onClick={() => update(state)}>Retry saving</button>
+          </div>
+        )}
+        {notice && (
+          <div className="import-notice" role="status">
+            <span>{notice}</span>
+            <button className="quiet" onClick={() => setNotice("")}>
+              Dismiss
+            </button>
           </div>
         )}
         {!state.profile ? (
@@ -1014,16 +1085,22 @@ export function App() {
                           <div>
                             <h2>{s.name}</h2>
                             <p>
-                              {new Date(s.startedAt).toLocaleString()} ·{" "}
-                              {Math.max(
-                                0,
-                                Math.round(
-                                  ((s.finishedAt || s.startedAt) -
-                                    s.startedAt) /
-                                    60000,
-                                ),
-                              )}{" "}
-                              min
+                              {s.imported ? (
+                                `${s.performedOn} · Imported · Duration not recorded`
+                              ) : (
+                                <>
+                                  {new Date(s.startedAt).toLocaleString()} ·{" "}
+                                  {Math.max(
+                                    0,
+                                    Math.round(
+                                      ((s.finishedAt || s.startedAt) -
+                                        s.startedAt) /
+                                        60000,
+                                    ),
+                                  )}{" "}
+                                  min
+                                </>
+                              )}
                             </p>
                           </div>
                           <span>
@@ -1056,6 +1133,25 @@ export function App() {
             )}
             {tab === "Settings" && (
               <div className="settings-grid">
+                <ExcelImport
+                  catalog={all}
+                  onImport={(payload) => {
+                    try {
+                      const current = latest.current;
+                      const next = importWorkout(current, payload, all);
+                      update(next);
+                      setNotice(
+                        next === current
+                          ? "This workout is already in your history."
+                          : "Workout added to your history.",
+                      );
+                      setTab("History");
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                  }}
+                />
+
                 <section className="panel">
                   <h2>Training preferences</h2>
                   <ProfileForm
@@ -1072,6 +1168,46 @@ export function App() {
                     desktop will sync once cloud login is connected. Clearing
                     browser data removes this local copy.
                   </p>
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      try {
+                        const token = workoutToken(importLink);
+                        if (!token)
+                          throw new Error("Paste a workout import link.");
+                        const current = latest.current;
+                        const next = importWorkout(
+                          current,
+                          decodeWorkoutImport(token),
+                          all,
+                        );
+                        update(next);
+                        setNotice(
+                          next === current
+                            ? "This workout is already in your history."
+                            : "Workout added to your history.",
+                        );
+                        setImportLink("");
+                        setTab("History");
+                      } catch (e) {
+                        setError((e as Error).message);
+                      }
+                    }}
+                  >
+                    <label>
+                      Import workout link
+                      <input
+                        type="url"
+                        required
+                        value={importLink}
+                        onChange={(e) => setImportLink(e.target.value)}
+                        placeholder="Paste your workout link"
+                      />
+                    </label>
+                    <button className="quiet" type="submit">
+                      Import workout
+                    </button>
+                  </form>
                   <button className="quiet" onClick={exportData}>
                     Export backup
                   </button>

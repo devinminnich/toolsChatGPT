@@ -45,6 +45,8 @@ export type Session = {
   id: string;
   name: string;
   startedAt: number;
+  imported?: boolean;
+  performedOn?: string;
   finishedAt?: number;
   unit: "lb" | "kg";
   exercises: {

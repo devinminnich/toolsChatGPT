@@ -1987,3 +1987,21 @@ for (const exercise of catalog)
 const closeGrip = catalog.find((e) => e.name === "Close-grip bench press")!;
 closeGrip.pattern = "press";
 closeGrip.secondary = ["Chest", "Shoulders"];
+
+// A position-neutral press for logs that do not specify seated or standing.
+catalog.push({
+  id: "dumbbell-shoulder-press",
+  name: "Dumbbell shoulder press",
+  aliases: ["DB shoulder press"],
+  muscle: "Shoulders",
+  secondary: ["Triceps"],
+  equipment: "Dumbbell",
+  pattern: "overhead press",
+  metric: "reps",
+  loaded: true,
+  instructions: [
+    "Use a stable seated or standing position with dumbbells at shoulder level.",
+    "Brace your trunk, press overhead through a comfortable range, then lower under control.",
+  ],
+  cues: "Keep ribs stacked and avoid arching the lower back.",
+});
