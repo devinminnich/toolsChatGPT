@@ -1,0 +1,33 @@
+name: Fitness training checks
+on:
+  pull_request:
+    paths: ['apps/fitness/**', '.github/workflows/fitness-ci.yml']
+  push:
+    branches: [main]
+    paths: ['apps/fitness/**', '.github/workflows/fitness-ci.yml']
+permissions:
+  contents: read
+jobs:
+  training:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/fitness
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/fitness/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run test:offline
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: fitness-test-results
+          path: apps/fitness/test-results

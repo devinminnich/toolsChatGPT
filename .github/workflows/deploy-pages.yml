@@ -25,6 +25,18 @@ jobs:
       - run: npm install
       - run: npm test
       - run: npm run build
+      - name: Install fitness dependencies
+        run: npm ci
+        working-directory: apps/fitness
+      - name: Check and build fitness preview
+        run: |
+          npm test
+          npm run build
+        working-directory: apps/fitness
+      - name: Include fitness preview in Pages artifact
+        run: |
+          mkdir -p dist/fitness
+          cp -R apps/fitness/dist/. dist/fitness/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -58,3 +70,18 @@ jobs:
             asset_url="${PAGE_URL%/}/$asset"
           fi
           curl --fail --location --retry 12 --retry-delay 5 --retry-all-errors "$asset_url" -o /dev/null
+
+      - name: Verify live fitness preview
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          fitness_url="${PAGE_URL%/}/fitness/"
+          fitness_page="$(mktemp)"
+          curl --fail --location --retry 12 --retry-delay 5 --retry-all-errors "$fitness_url" -o "$fitness_page"
+          grep -q '<title>Fitness Coach</title>' "$fitness_page"
+          fitness_asset="$(grep -oE 'src="[^"]+assets/index-[^"]+\\.js"' "$fitness_page" | head -1 | cut -d'"' -f2)"
+          test -n "$fitness_asset"
+          curl --fail --location --retry 12 --retry-delay 5 --retry-all-errors "${fitness_url}${fitness_asset#./}" -o /dev/null
+          curl --fail --location "${fitness_url}manifest.webmanifest" -o /dev/null
+          curl --fail --location "${fitness_url}sw.js" -o /dev/null
