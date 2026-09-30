@@ -80,7 +80,7 @@ jobs:
           fitness_page="$(mktemp)"
           curl --fail --location --retry 12 --retry-delay 5 --retry-all-errors "$fitness_url" -o "$fitness_page"
           grep -q '<title>Fitness Coach</title>' "$fitness_page"
-          fitness_asset="$(grep -oE 'src="[^"]+assets/index-[^"]+\\.js"' "$fitness_page" | head -1 | cut -d'"' -f2)"
+          fitness_asset="$(grep -oE 'src="[^"]+assets/index-[^"]+[.]js"' "$fitness_page" | head -1 | cut -d'"' -f2)"
           test -n "$fitness_asset"
           curl --fail --location --retry 12 --retry-delay 5 --retry-all-errors "${fitness_url}${fitness_asset#./}" -o /dev/null
           curl --fail --location "${fitness_url}manifest.webmanifest" -o /dev/null
