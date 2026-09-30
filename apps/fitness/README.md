@@ -12,7 +12,7 @@ npm ci
 npm run dev
 ```
 
-For production assets: `npm run build`. Serve `dist` over HTTPS to enable the service worker and installable PWA. Local preview: `npm run preview -- --host 127.0.0.1`. The frontend can be hosted in a subdirectory; assets use a relative base. It is not yet wired into the root GitHub Pages deployment.
+For production assets: `npm run build`. Serve `dist` over HTTPS to enable the service worker and installable PWA. Local preview: `npm run preview -- --host 127.0.0.1`. The frontend can be hosted in a subdirectory; assets use a relative base. The root GitHub Pages deployment publishes this app under `/toolsChatGPT/fitness/` alongside the renovation planner.
 
 ## Implemented
 
