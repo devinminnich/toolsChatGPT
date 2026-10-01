@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { catalog } from "./catalog";
 import {
   completeSet,
+  deleteWorkout,
   changeSetType,
   returnToWorkouts,
   resumeSession,
@@ -217,4 +218,44 @@ it("returns active sessions to workouts without losing logged sets or changing r
   expect(
     returnToWorkouts({ ...state, active: legacy }).readySessions?.[0].workoutId,
   ).toBe(w.id);
+});
+
+it("deletes only the stored routine and matching draft while retaining historical and active results", () => {
+  const w = workout();
+  const session = startSession(w, catalog, "lb");
+  const history = [{ ...session, finishedAt: 1234 }];
+  const other = { ...w, id: "other" };
+  const state = {
+    ...emptyState(),
+    workouts: [w, other],
+    history,
+    active: session,
+    draft: w,
+  };
+  const next = deleteWorkout(state, w.id);
+  expect(next.workouts).toEqual([other]);
+  expect(next.history).toBe(history);
+  expect(next.active).toBe(session);
+  expect(next.draft).toBeUndefined();
+  expect(state.workouts).toHaveLength(2);
+});
+it("archives saved in-progress sets when their routine is deleted", () => {
+  const w = workout();
+  const session = startSession(w, catalog, "lb");
+  const logged = completeSet(
+    session,
+    session.exercises[0].id,
+    session.exercises[0].sets[0].id,
+    123,
+  );
+  const state = returnToWorkouts({
+    ...emptyState(),
+    workouts: [w],
+    active: logged,
+  });
+  const next = deleteWorkout(state, w.id, 1000);
+  expect(next.workouts).toHaveLength(0);
+  expect(next.readySessions).toHaveLength(0);
+  expect(next.history[0].exercises).toEqual(logged.exercises);
+  expect(next.history[0].finishedAt).toBe(1000);
 });

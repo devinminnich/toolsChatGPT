@@ -50,3 +50,7 @@ it("rejects invalid dates, unknown exercises and malformed or negative metrics",
     expect(() => importWorkout(emptyState(), bad, catalog)).toThrow();
   expect(() => decodeWorkoutImport("not-a-valid-json-link")).toThrow();
 });
+
+it("ignores an empty import link on normal app loading", () => {
+  expect(workoutToken("")).toBeNull();
+});

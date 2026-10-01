@@ -1,5 +1,79 @@
 import { expect, test } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+test("deleting a stored workout keeps its history after reload and cancellation keeps the routine", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Start training", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Build a workout", exact: false })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Search exercises" })
+    .fill("legpress");
+  await page
+    .getByRole("button", { name: "Add Seated leg press", exact: true })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Workout name" })
+    .fill("Delete test routine");
+  await page
+    .getByLabel("Weight (lb) for Seated leg press set 1", { exact: true })
+    .fill("160");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Complete set", exact: true })
+    .first()
+    .click();
+  page.once("dialog", (d) => d.accept());
+  await page
+    .getByRole("button", { name: "Finish workout", exact: true })
+    .click();
+  await page
+    .locator("nav:visible")
+    .getByRole("button", { name: "Train", exact: false })
+    .click();
+  page.once("dialog", (d) => d.dismiss());
+  await page
+    .getByRole("button", { name: "Delete Delete test routine", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Start workout", exact: true }),
+  ).toBeVisible();
+  page.once("dialog", (d) => d.accept());
+  await page
+    .getByRole("button", { name: "Delete Delete test routine", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Start workout", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".save-status")).toContainText(
+    "Saved on this device",
+  );
+  await page.reload();
+  await page
+    .locator("nav:visible")
+    .getByRole("button", { name: "Train", exact: false })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Start workout", exact: true }),
+  ).toHaveCount(0);
+  await page
+    .locator("nav:visible")
+    .getByRole("button", { name: "History", exact: false })
+    .click();
+  await page
+    .getByRole("heading", { name: "Delete test routine", exact: true })
+    .click();
+  await expect(
+    page.getByText("Set 1: 160 lb × 10 reps", { exact: true }),
+  ).toBeVisible();
+});
 test("warm-up weights and returning an active workout preserve progress after reload", async ({
   page,
 }) => {

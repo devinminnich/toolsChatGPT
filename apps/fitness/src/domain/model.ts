@@ -406,3 +406,35 @@ export function resumeSession(session: Session, now = Date.now()): Session {
     readyAt: undefined,
   };
 }
+
+export function deleteWorkout(
+  state: State,
+  workoutId: string,
+  now = Date.now(),
+): State {
+  const savedProgress = (state.readySessions ?? []).filter(
+    (s) =>
+      s.workoutId === workoutId &&
+      s.exercises.some((e) => e.sets.some((set) => set.completedAt)),
+  );
+  return {
+    ...state,
+    workouts: state.workouts.filter((w) => w.id !== workoutId),
+    draft: state.draft?.id === workoutId ? undefined : state.draft,
+    readySessions: (state.readySessions ?? []).filter(
+      (s) => s.workoutId !== workoutId,
+    ),
+    history: savedProgress.length
+      ? [
+          ...state.history,
+          ...savedProgress.map((s) => ({
+            ...s,
+            finishedAt: Math.min(now, s.readyAt ?? now),
+            readyAt: undefined,
+            restEndsAt: undefined,
+            pausedRest: undefined,
+          })),
+        ]
+      : state.history,
+  };
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { catalog, equipmentOptions, muscles } from "./domain/catalog";
 import {
   workoutInUnits,
+  deleteWorkout,
   changeSetType,
   returnToWorkouts,
   resumeSession,
@@ -246,6 +247,17 @@ export function App() {
   function mutateSession(fn: (s: Session) => Session) {
     const current = latest.current;
     if (current.active) update({ ...current, active: fn(current.active) });
+  }
+  function removeWorkout(workout: Workout) {
+    if (
+      !window.confirm(
+        `Delete "${workout.name}" from saved workouts? Your workout history will be kept. Any saved in-progress sets will also be kept in History.`,
+      )
+    )
+      return;
+    update(deleteWorkout(latest.current, workout.id));
+    if (editing?.id === workout.id) setEditingState(undefined);
+    setNotice(`"${workout.name}" deleted. Your workout history is preserved.`);
   }
   function begin(workout: Workout) {
     if (state.active) {
@@ -861,6 +873,7 @@ export function App() {
                                 (s) => s.workoutId === w.id,
                               )}
                               onStart={() => begin(w)}
+                              onDelete={() => removeWorkout(w)}
                               onEdit={() => {
                                 setTab("Train");
                                 setEditing(
@@ -1012,6 +1025,14 @@ export function App() {
                     >
                       Save workout
                     </button>
+                    {state.workouts.some((w) => w.id === editing.id) && (
+                      <button
+                        className="quiet"
+                        onClick={() => removeWorkout(editing)}
+                      >
+                        Delete workout
+                      </button>
+                    )}
                   </section>
                 )}
                 {!editing && state.workouts.length > 0 && (
@@ -1024,6 +1045,7 @@ export function App() {
                           (s) => s.workoutId === w.id,
                         )}
                         onStart={() => begin(w)}
+                        onDelete={() => removeWorkout(w)}
                         onEdit={() =>
                           setEditing(workoutInUnits(w, state.profile!.unit))
                         }
@@ -1421,11 +1443,13 @@ function WorkoutCard({
   resumable,
   onStart,
   onEdit,
+  onDelete,
 }: {
   workout: Workout;
   resumable?: boolean;
   onStart: () => void;
   onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
     <article className="panel workout-card">
@@ -1448,6 +1472,13 @@ function WorkoutCard({
         </button>
         <button className="quiet" onClick={onEdit}>
           Edit
+        </button>
+        <button
+          className="quiet"
+          onClick={onDelete}
+          aria-label={`Delete ${workout.name}`}
+        >
+          Delete
         </button>
       </div>
     </article>

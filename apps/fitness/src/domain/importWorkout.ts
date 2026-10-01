@@ -28,6 +28,7 @@ export function decodeWorkoutImport(value: string): unknown {
   }
 }
 export function workoutToken(link: string): string | null {
+  if (!link.trim()) return null;
   const hash = link.startsWith("#") ? link : new URL(link).hash;
   return new URLSearchParams(hash.slice(1)).get("workout");
 }

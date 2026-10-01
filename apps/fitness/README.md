@@ -78,3 +78,5 @@ Routine share links (`#routine=...`) save planned workouts separately from perfo
 In-progress workouts can move back to the saved-workout step with **Back to workouts**. Logged sets and coaching state stay saved on the device; **Resume workout** restores them. Returning stops the rest timer. Routine edits apply to future sessions.
 
 Selecting **Warm-up** on an unfinished loaded set starts at 50% of its working weight, with an editable weight field and visible explanation. Switching back restores its working weight without repeated reductions. Completed results never change load from a set-type selection.
+
+Saved routine cards and the routine editor offer Delete with confirmation. Deletion removes only the routine and its draft; existing history and active sessions are preserved. Saved in-progress logs are moved to History before removing their resume card.
