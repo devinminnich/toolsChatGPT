@@ -18,6 +18,7 @@ import {
   type State,
   type Workout,
 } from "./domain/model";
+import { importFromHash } from "./domain/importRoutine";
 import { SessionCoach } from "./SessionCoach";
 import { RoutineSets } from "./RoutineSets";
 import { ExcelImport } from "./ExcelImport";
@@ -70,26 +71,21 @@ export function App() {
       .then(async (s) => {
         if (alive) {
           try {
-            const token = workoutToken(location.hash);
-            if (token) {
-              const next = importWorkout(s, decodeWorkoutImport(token), [
-                ...catalog,
-                ...s.custom,
-              ]);
-              await save(next);
+            const imported = importFromHash(s, location.hash, [
+              ...catalog,
+              ...s.custom,
+            ]);
+            if (imported) {
+              await save(imported.next);
               if (!alive) return;
-              setNotice(
-                next === s
-                  ? "This workout is already in your history."
-                  : "Workout added to your history.",
-              );
-              s = next;
+              setNotice(imported.notice);
+              s = imported.next;
               window.history.replaceState(
                 null,
                 "",
                 location.pathname + location.search,
               );
-              setTab("History");
+              setTab(imported.tab);
             }
           } catch (e) {
             setError(`Workout was not added: ${(e as Error).message}`);
@@ -114,25 +110,20 @@ export function App() {
     if (!ready) return;
     const handler = () => {
       try {
-        const token = workoutToken(location.hash);
-        if (!token) return;
         const current = latest.current;
-        const next = importWorkout(current, decodeWorkoutImport(token), [
+        const imported = importFromHash(current, location.hash, [
           ...catalog,
           ...current.custom,
         ]);
-        update(next);
-        setNotice(
-          next === current
-            ? "This workout is already in your history."
-            : "Workout added to your history.",
-        );
+        if (!imported) return;
+        update(imported.next);
+        setNotice(imported.notice);
         window.history.replaceState(
           null,
           "",
           location.pathname + location.search,
         );
-        setTab("History");
+        setTab(imported.tab);
       } catch (e) {
         setError(`Workout was not added: ${(e as Error).message}`);
       }
@@ -557,6 +548,15 @@ export function App() {
                                     ))}
                                   </select>
                                 </label>
+                                {set.targetRange && (
+                                  <p className="muted">
+                                    Target: {set.targetRange.min}–
+                                    {set.targetRange.max}{" "}
+                                    {exercise.exercise.metric === "duration"
+                                      ? "seconds"
+                                      : "reps"}
+                                  </p>
+                                )}
                                 <div className="set-inputs">
                                   {exercise.exercise.metric === "reps" ? (
                                     <>
@@ -1342,6 +1342,7 @@ function WorkoutCard({
       <p>
         {workout.exercises.length} exercises ·{" "}
         {workout.exercises.reduce((s, e) => s + e.sets.length, 0)} sets
+        {workout.scheduledFor && ` · Planned for ${workout.scheduledFor}`}
       </p>
       <div className="row">
         <button className="primary" onClick={onStart}>

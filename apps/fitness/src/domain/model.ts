@@ -27,11 +27,13 @@ export type PlannedSet = {
   weight: number;
   duration: number;
   distance: number;
+  targetRange?: { min: number; max: number };
 };
 export type Workout = {
   id: string;
   name: string;
   unit?: "lb" | "kg";
+  scheduledFor?: string;
   exercises: Prescription[];
 };
 export type Difficulty = "Easy" | "About right" | "Hard" | "Failed";
@@ -42,6 +44,7 @@ export type SetRecord = {
   reps: number;
   duration: number;
   distance: number;
+  targetRange?: { min: number; max: number };
   difficulty?: Difficulty;
   completedAt?: number;
   skipped?: boolean;

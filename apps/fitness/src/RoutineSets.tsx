@@ -41,6 +41,12 @@ export function RoutineSets({
       {value.sets.map((set, index) => (
         <fieldset className="routine-set" key={set.id}>
           <legend>Set {index + 1}</legend>
+          {set.targetRange && (
+            <p className="muted">
+              Target: {set.targetRange.min}–{set.targetRange.max}{" "}
+              {exercise.metric === "duration" ? "seconds" : "reps"}
+            </p>
+          )}
           <div className="builder-inputs">
             <label>
               Set type

@@ -74,7 +74,9 @@ export function suggestNextSet(
         message:
           "The next set has a deliberately lower target. Keep it as planned or ask your coach before changing it.",
       };
-    const ceiling = goal === "Strength" ? 8 : goal === "Endurance" ? 20 : 12;
+    const ceiling =
+      source.targetRange?.max ??
+      (goal === "Strength" ? 8 : goal === "Endurance" ? 20 : 12);
     if (
       goal === "Strength" &&
       exercise.exercise.loaded &&
@@ -151,5 +153,5 @@ export function coachContext(
   profile: Profile,
   question: string,
 ): string {
-  return `Please coach my current workout. My question: ${question.trim() || "What should I do next?"}\nGoal: ${profile.goal}. Give a concrete suggestion and explain it. Do not assume pain, injury, equipment increments or difficulty when absent. Distinguish completed results from unfinished targets.\n${JSON.stringify({ name: session.name, unit: session.unit, exercises: session.exercises.map((e) => ({ name: e.exercise.name, equipment: e.exercise.equipment, restSeconds: e.rest, sets: e.sets.map((s, i) => ({ set: i + 1, type: s.type, weight: s.weight, reps: s.reps, seconds: s.duration, km: s.distance, status: s.completedAt ? "Completed" : s.skipped ? "Skipped" : "Planned", difficulty: s.difficulty })) })) }, null, 2)}`;
+  return `Please coach my current workout. My question: ${question.trim() || "What should I do next?"}\nGoal: ${profile.goal}. Give a concrete suggestion and explain it. Do not assume pain, injury, equipment increments or difficulty when absent. Distinguish completed results from unfinished targets.\n${JSON.stringify({ name: session.name, unit: session.unit, exercises: session.exercises.map((e) => ({ name: e.exercise.name, equipment: e.exercise.equipment, restSeconds: e.rest, sets: e.sets.map((s, i) => ({ set: i + 1, type: s.type, targetRange: s.targetRange, weight: s.weight, reps: s.reps, seconds: s.duration, km: s.distance, status: s.completedAt ? "Completed" : s.skipped ? "Skipped" : "Planned", difficulty: s.difficulty })) })) }, null, 2)}`;
 }
