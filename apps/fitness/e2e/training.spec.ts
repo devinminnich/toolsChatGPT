@@ -1,5 +1,73 @@
 import { expect, test } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+test("warm-up weights and returning an active workout preserve progress after reload", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Start training", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Build a workout", exact: false })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Search exercises" })
+    .fill("legpress");
+  await page
+    .getByRole("button", { name: "Add Seated leg press", exact: true })
+    .click();
+  const weight = page.getByLabel("Weight (lb) for Seated leg press set 1", {
+    exact: true,
+  });
+  const type = page.getByLabel("Set type for Seated leg press set 1", {
+    exact: true,
+  });
+  await weight.fill("160");
+  await type.selectOption("Warm-up");
+  await expect(weight).toHaveValue("80");
+  await type.selectOption("Working");
+  await expect(weight).toHaveValue("160");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await page
+    .getByLabel("Set type for Seated leg press set 1", { exact: true })
+    .selectOption("Warm-up");
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).first(),
+  ).toHaveValue("80");
+  await page
+    .getByRole("button", { name: "Complete set", exact: true })
+    .first()
+    .click();
+  await page
+    .getByRole("button", { name: "Back to workouts", exact: true })
+    .click();
+  await expect(page.getByLabel("Rest timer", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Resume workout", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".save-status")).toContainText(
+    "Saved on this device",
+  );
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Resume workout", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "✓ Logged", exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).first(),
+  ).toHaveValue("80");
+  await page
+    .getByLabel("Set type for Seated leg press set 1", { exact: true })
+    .selectOption("Working");
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).first(),
+  ).toHaveValue("80");
+});
 test("auto-adjust toggle applies difficulty immediately and does not stack changes", async ({
   page,
 }) => {

@@ -25,6 +25,7 @@ export type PlannedSet = {
   type: (typeof setTypes)[number];
   reps: number;
   weight: number;
+  warmupBaseWeight?: number;
   duration: number;
   distance: number;
   targetRange?: { min: number; max: number };
@@ -41,6 +42,7 @@ export type SetRecord = {
   id: string;
   type: "Working" | "Warm-up" | "Drop";
   weight: number;
+  warmupBaseWeight?: number;
   reps: number;
   duration: number;
   distance: number;
@@ -51,6 +53,8 @@ export type SetRecord = {
 };
 export type Session = {
   id: string;
+  workoutId?: string;
+  readyAt?: number;
   name: string;
   startedAt: number;
   imported?: boolean;
@@ -88,6 +92,7 @@ export type State = {
   workouts: Workout[];
   draft?: Workout;
   active?: Session;
+  readySessions?: Session[];
   history: Session[];
 };
 export const emptyState = (): State => ({
@@ -125,6 +130,7 @@ export function startSession(
   return {
     id: id(),
     name: workout.name,
+    workoutId: workout.id,
     startedAt: Date.now(),
     unit,
     exercises: workout.exercises.map((p) => {
@@ -139,6 +145,10 @@ export function startSession(
           ...structuredClone(set),
           id: id(),
           weight: convertWeight(set.weight, workout.unit || "lb", unit),
+          warmupBaseWeight:
+            set.warmupBaseWeight === undefined
+              ? undefined
+              : convertWeight(set.warmupBaseWeight, workout.unit || "lb", unit),
         })),
       };
     }),
@@ -257,6 +267,10 @@ export function workoutInUnits(
       sets: p.sets.map((set) => ({
         ...set,
         weight: convertWeight(set.weight, workout.unit || "lb", unit),
+        warmupBaseWeight:
+          set.warmupBaseWeight === undefined
+            ? undefined
+            : convertWeight(set.warmupBaseWeight, workout.unit || "lb", unit),
       })),
     })),
   };
@@ -285,6 +299,7 @@ export function migrateState(
           rest: number;
           sets: number;
           weight: number;
+          warmupBaseWeight?: number;
           reps: number;
           duration: number;
           distance: number;
@@ -312,5 +327,82 @@ export function migrateState(
     version: 2,
     workouts: data.workouts.map(migrateWorkout),
     draft: data.draft ? migrateWorkout(data.draft) : undefined,
+  };
+}
+
+export function changeSetType<T extends PlannedSet>(
+  set: T,
+  type: PlannedSet["type"],
+  loaded: boolean,
+  fallbackWeight = 0,
+): T {
+  if (type === set.type) return set;
+  // Completed results can change labels, never their recorded load.
+  if (!loaded || (set as SetRecord).completedAt || (set as SetRecord).skipped)
+    return { ...set, type };
+  if (type === "Warm-up") {
+    const base = set.weight > 0 ? set.weight : fallbackWeight;
+    return base > 0
+      ? {
+          ...set,
+          type,
+          warmupBaseWeight: base,
+          weight: Math.round(base * 50) / 100,
+        }
+      : { ...set, type };
+  }
+  return {
+    ...set,
+    type,
+    weight: set.warmupBaseWeight ?? set.weight,
+    warmupBaseWeight: undefined,
+  };
+}
+export function returnToWorkouts(state: State): State {
+  const session = state.active;
+  if (!session) return state;
+  const original =
+    state.workouts.find((w) => w.id === session.workoutId) ??
+    state.workouts.find(
+      (w) =>
+        w.exercises.length === session.exercises.length &&
+        w.exercises.every((e, i) => e.id === session.exercises[i].id),
+    );
+  const workout: Workout = original ?? {
+    id: id(),
+    name: session.name,
+    unit: session.unit,
+    exercises: session.exercises.map((e) => ({
+      id: e.id,
+      exerciseId: e.exercise.id,
+      rest: e.rest,
+      sets: e.sets.map(({ completedAt, difficulty, skipped, ...set }) => set),
+    })),
+  };
+  const ready: Session = {
+    ...session,
+    workoutId: workout.id,
+    readyAt: Date.now(),
+    restEndsAt: undefined,
+    pausedRest: undefined,
+  };
+  return {
+    ...state,
+    active: undefined,
+    workouts: original ? state.workouts : [...state.workouts, workout],
+    readySessions: [
+      ...(state.readySessions ?? []).filter((s) => s.workoutId !== workout.id),
+      ready,
+    ],
+  };
+}
+
+export function resumeSession(session: Session, now = Date.now()): Session {
+  return {
+    ...session,
+    startedAt:
+      session.startedAt +
+      (session.readyAt === undefined ? 0 : Math.max(0, now - session.readyAt)),
+    readyAt: undefined,
   };
 }

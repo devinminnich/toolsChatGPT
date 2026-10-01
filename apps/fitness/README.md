@@ -74,3 +74,7 @@ The local progression prototype suggests one additional rep for general fitness,
 Reference for goal-specific programming: ACSM 2026 update, https://acsm.org/resistance-training-guidelines-update-2026/ . It supports individualized goal-specific load/volume, not these exact prototype thresholds or a claim that Easy alone establishes readiness to progress.
 
 Routine share links (`#routine=...`) save planned workouts separately from performed history. Each set preserves its rep/time range alongside its editable starting target, and the routine retains the planned date. Loads start at 0 when unspecified; choose working weights before starting. Reopening the same routine link does not overwrite edits or create duplicates.
+
+In-progress workouts can move back to the saved-workout step with **Back to workouts**. Logged sets and coaching state stay saved on the device; **Resume workout** restores them. Returning stops the rest timer. Routine edits apply to future sessions.
+
+Selecting **Warm-up** on an unfinished loaded set starts at 50% of its working weight, with an editable weight field and visible explanation. Switching back restores its working weight without repeated reductions. Completed results never change load from a set-type selection.

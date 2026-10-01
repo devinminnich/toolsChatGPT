@@ -1,5 +1,6 @@
 import {
   id,
+  changeSetType,
   plannedSet,
   setTypes,
   type Exercise,
@@ -47,6 +48,12 @@ export function RoutineSets({
               {exercise.metric === "duration" ? "seconds" : "reps"}
             </p>
           )}
+          {set.warmupBaseWeight !== undefined && (
+            <p className="muted">
+              Warm-up starts at 50% of {set.warmupBaseWeight} {unit}. Adjust for
+              your equipment.
+            </p>
+          )}
           <div className="builder-inputs">
             <label>
               Set type
@@ -54,7 +61,17 @@ export function RoutineSets({
                 aria-label={`Set type for ${exercise.name} set ${index + 1}`}
                 value={set.type}
                 onChange={(e) =>
-                  edit(set.id, { type: e.target.value as PlannedSet["type"] })
+                  edit(
+                    set.id,
+                    changeSetType(
+                      set,
+                      e.target.value as PlannedSet["type"],
+                      exercise.loaded,
+                      value.sets.find(
+                        (s) => s.type === "Working" && s.weight > 0,
+                      )?.weight,
+                    ),
+                  )
                 }
               >
                 {setTypes.map((type) => (

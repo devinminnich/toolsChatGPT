@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { catalog } from "./catalog";
 import {
   completeSet,
+  changeSetType,
+  returnToWorkouts,
+  resumeSession,
   prescription,
   searchExercises,
   startSession,
@@ -160,4 +163,58 @@ describe("training rules", () => {
     expect(previousSet([s], "dumbbell-bench-press", 0, "kg")).toBeUndefined();
     expect(previousSet([s], "dumbbell-bench-press", 0, "lb")?.weight).toBe(25);
   });
+});
+
+it("warm-up load reduces once, restores working load and converts the baseline", () => {
+  const original = {
+    ...prescription("dumbbell-bench-press").sets[0],
+    weight: 30,
+  };
+  const warmup = changeSetType(original, "Warm-up", true);
+  expect(warmup.weight).toBe(15);
+  expect(changeSetType(warmup, "Warm-up", true).weight).toBe(15);
+  expect(
+    changeSetType({ ...warmup, weight: 12.5 }, "Working", true).weight,
+  ).toBe(30);
+  expect(
+    changeSetType({ ...original, weight: 0 }, "Warm-up", true, 40).weight,
+  ).toBe(20);
+  expect(changeSetType(original, "Warm-up", false).weight).toBe(30);
+  expect(
+    changeSetType({ ...original, completedAt: 123 }, "Warm-up", true).weight,
+  ).toBe(30);
+  const w = { ...workout(), unit: "lb" as const };
+  w.exercises[0].sets[0] = warmup;
+  const session = startSession(w, catalog, "kg");
+  expect(
+    changeSetType(session.exercises[0].sets[0], "Working", true).weight,
+  ).toBe(13.61);
+  expect(workoutInUnits(w, "kg").exercises[0].sets[0].warmupBaseWeight).toBe(
+    13.61,
+  );
+});
+it("returns active sessions to workouts without losing logged sets or changing routine targets", () => {
+  const w = workout();
+  const active = startSession(w, catalog, "lb");
+  const logged = completeSet(
+    active,
+    active.exercises[0].id,
+    active.exercises[0].sets[0].id,
+    123,
+  );
+  const state = { ...emptyState(), workouts: [w], active: logged };
+  const ready = returnToWorkouts(state);
+  expect(ready.active).toBeUndefined();
+  expect(ready.readySessions?.[0].exercises).toEqual(logged.exercises);
+  expect(ready.readySessions?.[0].restEndsAt).toBeUndefined();
+  expect(ready.workouts).toEqual(state.workouts);
+  expect(ready.history).toHaveLength(0);
+  const parked = ready.readySessions![0];
+  expect(resumeSession(parked, parked.readyAt! + 60000).startedAt).toBe(
+    logged.startedAt + 60000,
+  );
+  const legacy = { ...logged, workoutId: undefined };
+  expect(
+    returnToWorkouts({ ...state, active: legacy }).readySessions?.[0].workoutId,
+  ).toBe(w.id);
 });

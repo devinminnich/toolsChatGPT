@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { catalog, equipmentOptions, muscles } from "./domain/catalog";
 import {
   workoutInUnits,
+  changeSetType,
+  returnToWorkouts,
+  resumeSession,
   completeSet,
   emptyState,
   id,
@@ -250,9 +253,17 @@ export function App() {
       return;
     }
     try {
+      const readySession = state.readySessions?.find(
+        (s) => s.workoutId === workout.id,
+      );
       update({
         ...state,
-        active: startSession(workout, all, state.profile!.unit),
+        active: readySession
+          ? resumeSession(readySession)
+          : startSession(workout, all, state.profile!.unit),
+        readySessions: (state.readySessions ?? []).filter(
+          (s) => s.workoutId !== workout.id,
+        ),
       });
       setTab("Today");
       setEditing(undefined);
@@ -411,6 +422,18 @@ export function App() {
                           elapsed
                         </p>
                       </div>
+                      <button
+                        className="quiet"
+                        onClick={() => {
+                          update(returnToWorkouts(latest.current));
+                          setNotice(
+                            "Workout moved back. Your logged sets are saved—choose Resume workout to continue.",
+                          );
+                          window.scrollTo(0, 0);
+                        }}
+                      >
+                        Back to workouts
+                      </button>
                       <button className="quiet" onClick={finish}>
                         Finish workout
                       </button>
@@ -580,10 +603,22 @@ export function App() {
                                     disabled={!!set.skipped}
                                     onChange={(event) =>
                                       mutateSession((s) =>
-                                        editSet(s, exercise.id, set.id, {
-                                          type: event.target
-                                            .value as PlannedSet["type"],
-                                        }),
+                                        editSet(
+                                          s,
+                                          exercise.id,
+                                          set.id,
+                                          changeSetType(
+                                            set,
+                                            event.target
+                                              .value as PlannedSet["type"],
+                                            exercise.exercise.loaded,
+                                            exercise.sets.find(
+                                              (s) =>
+                                                s.type === "Working" &&
+                                                s.weight > 0,
+                                            )?.weight,
+                                          ),
+                                        ),
                                       )
                                     }
                                   >
@@ -592,6 +627,14 @@ export function App() {
                                     ))}
                                   </select>
                                 </label>
+                                {set.warmupBaseWeight !== undefined &&
+                                  !set.completedAt && (
+                                    <p className="muted">
+                                      Warm-up starts at 50% of{" "}
+                                      {set.warmupBaseWeight} {session.unit}.
+                                      Adjust for your equipment.
+                                    </p>
+                                  )}
                                 {set.targetRange && (
                                   <p className="muted">
                                     Target: {set.targetRange.min}–
@@ -814,6 +857,9 @@ export function App() {
                             <WorkoutCard
                               key={w.id}
                               workout={w}
+                              resumable={state.readySessions?.some(
+                                (s) => s.workoutId === w.id,
+                              )}
                               onStart={() => begin(w)}
                               onEdit={() => {
                                 setTab("Train");
@@ -974,6 +1020,9 @@ export function App() {
                       <WorkoutCard
                         key={w.id}
                         workout={w}
+                        resumable={state.readySessions?.some(
+                          (s) => s.workoutId === w.id,
+                        )}
                         onStart={() => begin(w)}
                         onEdit={() =>
                           setEditing(workoutInUnits(w, state.profile!.unit))
@@ -1369,10 +1418,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 function WorkoutCard({
   workout,
+  resumable,
   onStart,
   onEdit,
 }: {
   workout: Workout;
+  resumable?: boolean;
   onStart: () => void;
   onEdit: () => void;
 }) {
@@ -1385,9 +1436,15 @@ function WorkoutCard({
         {workout.exercises.reduce((s, e) => s + e.sets.length, 0)} sets
         {workout.scheduledFor && ` · Planned for ${workout.scheduledFor}`}
       </p>
+      {resumable && (
+        <p>
+          Resume keeps your logged sets. Routine edits apply to your next
+          workout.
+        </p>
+      )}
       <div className="row">
         <button className="primary" onClick={onStart}>
-          Start workout
+          {resumable ? "Resume workout" : "Start workout"}
         </button>
         <button className="quiet" onClick={onEdit}>
           Edit
