@@ -66,6 +66,11 @@ export type Session = {
   restEndsAt?: number;
   pausedRest?: number;
   coachIncrement?: number;
+  coachAuto?: boolean;
+  coachUpdates?: Record<
+    string,
+    { difficulty: Difficulty; weight: number; reps: number; reason: string }
+  >;
   coachFeedback?: { exerciseId: string; setId: string; applied?: boolean };
 };
 export type Profile = {

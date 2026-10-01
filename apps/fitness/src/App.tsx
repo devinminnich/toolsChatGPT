@@ -19,6 +19,7 @@ import {
   type Workout,
 } from "./domain/model";
 import { importFromHash } from "./domain/importRoutine";
+import { recordDifficulty } from "./domain/coach";
 import { SessionCoach } from "./SessionCoach";
 import { RoutineSets } from "./RoutineSets";
 import { ExcelImport } from "./ExcelImport";
@@ -60,6 +61,39 @@ export function App() {
   const [equipment, setEquipment] = useState("");
   const [available, setAvailable] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const mainRef = useRef<HTMLElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const [dockLayout, setDockLayout] = useState({
+    left: 0,
+    width: 0,
+    height: 0,
+  });
+  useEffect(() => {
+    if (!ready || tab !== "Today" || !state.active) return;
+    const main = mainRef.current,
+      dock = dockRef.current;
+    if (!main || !dock) return;
+    const measure = () => {
+      const bounds = main.getBoundingClientRect();
+      const css = getComputedStyle(main);
+      const left = parseFloat(css.paddingLeft),
+        right = parseFloat(css.paddingRight);
+      setDockLayout({
+        left: bounds.left + left,
+        width: bounds.width - left - right,
+        height: dock.getBoundingClientRect().height,
+      });
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(main);
+    observer.observe(dock);
+    window.addEventListener("resize", measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [ready, tab, !!state.active]);
   const editingRef = useRef(editing);
   editingRef.current = editing;
   const queue = useRef(Promise.resolve());
@@ -304,7 +338,10 @@ export function App() {
           <small>Coach & cloud sync are coming in the next milestones.</small>
         </div>
       </aside>
-      <main>
+      <main ref={mainRef}>
+        {tab === "Today" && session && (
+          <div aria-hidden="true" style={{ height: dockLayout.height + 16 }} />
+        )}
         <header>
           <div>
             <span className="eyebrow">
@@ -385,7 +422,14 @@ export function App() {
                         />
                       </div>
                     </section>
-                    <div className="workout-dock">
+                    <div
+                      className="workout-dock"
+                      ref={dockRef}
+                      style={{
+                        left: dockLayout.left,
+                        width: dockLayout.width || undefined,
+                      }}
+                    >
                       <section className="rest panel" aria-label="Rest timer">
                         <div>
                           <span className="eyebrow">
@@ -684,18 +728,15 @@ export function App() {
                                               : "chip"
                                           }
                                           onClick={() =>
-                                            mutateSession((s) => ({
-                                              ...editSet(
+                                            mutateSession((s) =>
+                                              recordDifficulty(
                                                 s,
                                                 exercise.id,
                                                 set.id,
-                                                { difficulty: d },
+                                                d,
+                                                state.profile!.goal,
                                               ),
-                                              coachFeedback: {
-                                                exerciseId: exercise.id,
-                                                setId: set.id,
-                                              },
-                                            }))
+                                            )
                                           }
                                         >
                                           {d}

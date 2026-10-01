@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Profile, Session } from "./domain/model";
-import { applySuggestion, coachContext, suggestNextSet } from "./domain/coach";
+import { applyCoachUpdate, coachContext, suggestNextSet } from "./domain/coach";
 export function SessionCoach({
   session,
   profile,
@@ -14,6 +14,7 @@ export function SessionCoach({
     [question, setQuestion] = useState(""),
     [copied, setCopied] = useState("");
   const latest = session.coachFeedback;
+  const applied = latest ? session.coachUpdates?.[latest.setId] : undefined;
   const result = latest
     ? suggestNextSet(
         session,
@@ -37,13 +38,25 @@ export function SessionCoach({
         <span>
           {result
             ? latest?.applied
-              ? "Next set updated."
+              ? applied
+                ? `Next: ${applied.weight} ${session.unit} × ${applied.reps}`
+                : "Next set updated."
               : result.suggestion
                 ? "Next-set suggestion ready."
                 : result.message
             : "Choose set difficulty for coaching."}
         </span>
       </div>
+      <label className="coach-mode checkbox">
+        <input
+          type="checkbox"
+          checked={!!session.coachAuto}
+          onChange={(event) =>
+            onChange((s) => ({ ...s, coachAuto: event.target.checked }))
+          }
+        />
+        Auto-adjust next set
+      </label>
       {open && (
         <section
           id="coach-panel"
@@ -81,7 +94,9 @@ export function SessionCoach({
             <div className="coach-suggestion" role="status">
               <p>
                 {latest?.applied
-                  ? "Suggestion applied to the next unfinished working set."
+                  ? applied
+                    ? `Updated next set to ${applied.weight} ${session.unit} × ${applied.reps} after ${applied.difficulty}. ${applied.reason}`
+                    : "Suggestion applied to the next unfinished working set."
                   : result.message}
               </p>
               {result.suggestion && !latest?.applied && (
@@ -94,17 +109,7 @@ export function SessionCoach({
                   </p>
                   <button
                     onClick={() =>
-                      onChange((s) => {
-                        const next = applySuggestion(s, result.suggestion!);
-                        return next === s
-                          ? s
-                          : {
-                              ...next,
-                              coachFeedback: s.coachFeedback
-                                ? { ...s.coachFeedback, applied: true }
-                                : undefined,
-                            };
-                      })
+                      onChange((s) => applyCoachUpdate(s, result.suggestion!))
                     }
                   >
                     Apply to next set

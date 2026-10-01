@@ -6,7 +6,12 @@ import {
   startSession,
   type Difficulty,
 } from "./model";
-import { applySuggestion, coachContext, suggestNextSet } from "./coach";
+import {
+  applySuggestion,
+  recordDifficulty,
+  coachContext,
+  suggestNextSet,
+} from "./coach";
 function setup(difficulty: Difficulty = "Easy") {
   const p = prescription("seated-leg-press");
   p.sets = p.sets.map((s) => ({ ...s, weight: 100, reps: 10 }));
@@ -105,4 +110,29 @@ it("exports actual and planned context, goal, units, feedback and the question",
     "What next?",
   ])
     expect(text).toContain(value);
+});
+
+it("auto-adjusts immediately once, survives reload data and never rewrites completed sets", () => {
+  const s = setup();
+  s.coachAuto = true;
+  s.coachIncrement = 2.5;
+  const e = s.exercises[0],
+    source = e.sets[0];
+  const next = recordDifficulty(s, e.id, source.id, "Easy", "Strength");
+  expect(next.exercises[0].sets[1].weight).toBe(102.5);
+  expect(next.exercises[0].sets[0].weight).toBe(100);
+  const repeat = recordDifficulty(
+    structuredClone(next),
+    e.id,
+    source.id,
+    "Easy",
+    "Strength",
+  );
+  expect(repeat.exercises[0].sets[1].weight).toBe(102.5);
+  expect(repeat.coachUpdates?.[source.id].difficulty).toBe("Easy");
+  s.coachAuto = false;
+  expect(
+    recordDifficulty(s, e.id, source.id, "Easy", "Strength").exercises[0]
+      .sets[1].weight,
+  ).toBe(100);
 });

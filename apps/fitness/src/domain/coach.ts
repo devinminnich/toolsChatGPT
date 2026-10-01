@@ -7,6 +7,58 @@ export type CoachSuggestion = {
   after: { weight: number; reps: number };
   reason: string;
 };
+export function applyCoachUpdate(
+  session: Session,
+  suggestion: CoachSuggestion,
+): Session {
+  const next = applySuggestion(session, suggestion);
+  if (next === session) return session;
+  const difficulty = session.exercises
+    .find((e) => e.id === suggestion.exerciseId)!
+    .sets.find((s) => s.id === suggestion.sourceId)!.difficulty!;
+  return {
+    ...next,
+    coachUpdates: {
+      ...session.coachUpdates,
+      [suggestion.sourceId]: {
+        difficulty,
+        ...suggestion.after,
+        reason: suggestion.reason,
+      },
+    },
+    coachFeedback: {
+      exerciseId: suggestion.exerciseId,
+      setId: suggestion.sourceId,
+      applied: true,
+    },
+  };
+}
+export function recordDifficulty(
+  session: Session,
+  exerciseId: string,
+  setId: string,
+  difficulty: Difficulty,
+  goal: string,
+): Session {
+  const exercise = session.exercises.find((e) => e.id === exerciseId),
+    source = exercise?.sets.find((s) => s.id === setId);
+  if (!source?.completedAt) return session;
+  const next = structuredClone(session);
+  next.exercises
+    .find((e) => e.id === exerciseId)!
+    .sets.find((s) => s.id === setId)!.difficulty = difficulty;
+  const prior = session.coachUpdates?.[setId];
+  next.coachFeedback = { exerciseId, setId, applied: !!prior };
+  if (!next.coachAuto || prior) return next;
+  const result = suggestNextSet(
+    next,
+    exerciseId,
+    setId,
+    goal,
+    next.coachIncrement ?? (next.unit === "lb" ? 2.5 : 1),
+  );
+  return result.suggestion ? applyCoachUpdate(next, result.suggestion) : next;
+}
 export function suggestNextSet(
   session: Session,
   exerciseId: string,

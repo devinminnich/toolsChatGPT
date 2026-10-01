@@ -1,5 +1,59 @@
 import { expect, test } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+test("auto-adjust toggle applies difficulty immediately and does not stack changes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByLabel("Primary goal", { exact: true })
+    .selectOption("Strength");
+  await page
+    .getByRole("button", { name: "Start training", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Build a workout", exact: false })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Search exercises" })
+    .fill("legpress");
+  await page
+    .getByRole("button", { name: "Add Seated leg press", exact: true })
+    .click();
+  for (const n of [1, 2, 3])
+    await page
+      .getByLabel(`Weight (lb) for Seated leg press set ${n}`, { exact: true })
+      .fill("100");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await page.getByLabel("Auto-adjust next set", { exact: true }).check();
+  await page
+    .getByRole("button", { name: "Complete set", exact: true })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Easy", exact: true }).click();
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).nth(1),
+  ).toHaveValue("102.5");
+  await page.getByRole("button", { name: "Easy", exact: true }).click();
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).nth(1),
+  ).toHaveValue("102.5");
+  await expect(page.locator(".save-status")).toContainText(
+    "Saved on this device",
+  );
+  await page.reload();
+  await expect(
+    page.getByLabel("Auto-adjust next set", { exact: true }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).nth(1),
+  ).toHaveValue("102.5");
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).first(),
+  ).toHaveValue("100");
+});
 test("routine link saves a future plan with rep and time ranges", async ({
   page,
 }) => {
@@ -71,10 +125,26 @@ test("timer stays pinned and coach adapts only the next unfinished set", async (
     .click();
   const timer = page.getByLabel("Rest timer", { exact: true });
   await expect(timer).toBeVisible();
+  const dock = page.locator(".workout-dock");
+  const initialTop = (await dock.boundingBox())!.y;
+  expect(initialTop).toBeLessThanOrEqual(10);
   await page
     .getByRole("button", { name: "Complete set", exact: true })
     .first()
     .click();
+  const countdown = timer.locator("strong");
+  const before = await countdown.textContent();
+  await expect
+    .poll(() => countdown.textContent(), { timeout: 4000 })
+    .not.toBe(before);
+  await timer.getByRole("button", { name: "Pause", exact: true }).click();
+  const paused = await countdown.textContent();
+  await page.waitForTimeout(1200);
+  await expect(countdown).toHaveText(paused!);
+  await timer.getByRole("button", { name: "Resume", exact: true }).click();
+  await expect
+    .poll(() => countdown.textContent(), { timeout: 4000 })
+    .not.toBe(paused);
   await page.getByRole("button", { name: "Easy", exact: true }).click();
   await page.getByRole("button", { name: "Coach & chat", exact: true }).click();
   await page
@@ -90,6 +160,13 @@ test("timer stays pinned and coach adapts only the next unfinished set", async (
   await expect(page.getByLabel("Workout context for ChatGPT")).toHaveValue(
     /Easy/,
   );
+  await page.evaluate(() =>
+    window.scrollTo(0, document.documentElement.scrollHeight),
+  );
+  expect((await dock.boundingBox())!.y).toBeCloseTo(initialTop, 0);
+  await expect(
+    page.getByRole("textbox", { name: "Question for your coach", exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Close coach", exact: true }).click();
   await page
     .getByRole("button", { name: "Complete set", exact: true })

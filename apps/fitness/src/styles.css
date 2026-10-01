@@ -953,7 +953,7 @@ button:hover:not(:disabled) {
 }
 
 .workout-dock {
-  position: sticky;
+  position: fixed;
   top: max(8px, env(safe-area-inset-top));
   z-index: 10;
   margin-bottom: 20px;
@@ -1018,4 +1018,10 @@ button:hover:not(:disabled) {
     max-height: 34px;
     overflow-y: auto;
   }
+}
+
+.coach-mode {
+  margin: 0;
+  padding: 4px 16px 10px;
+  font-size: 12px;
 }
