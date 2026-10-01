@@ -186,3 +186,11 @@ Before cloud-enabled release: select Supabase project, configure email/password 
 - USDA FoodData Central API guide: https://fdc.nal.usda.gov/api-guide/
 
 These sources inform integration choices; all application workflows, authority settings and milestones above are product design decisions.
+
+### Single-user coaching discovery (September 30, 2026)
+
+For this prototype, the assistant in the existing ChatGPT conversation doubles as Devin's AI coach. Bring actual workout feedback to that conversation and use the resulting exchanges to refine the future service scope. The app's timer and coach entry stay pinned during scrolling. The initial handoff copies the user's question plus goal, units, exercise names/equipment, ordered set targets/results, set types and difficulty. It does not imply the assistant can automatically read private device storage.
+
+Future in-app chat should provide the same context directly to a secured AI service, keep a session conversation, ask about missing equipment increments or pain/recovery context, explain proposed changes, and return structured next-set proposals. Apply only to explicitly identified unfinished targets, reject stale proposals after a manual edit or set completion, and preserve completed outcomes and saved routines. Define automatic adaptation separately from suggestion-only behavior; the current prototype requires confirmation for each change. Native AI chat and cloud credentials are required before production release.
+
+Initial local suggestion rules are a discoverable prototype, not a substitute for the conversational coach: Easy may suggest one rep or a confirmed small weight increment according to goal, About right/Hard hold, Failed does not increase targets. Users can override all unfinished targets. Warm-up/drop/timed sets and deliberate routine progression are excluded from automatic recommendations.

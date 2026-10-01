@@ -1,5 +1,68 @@
 import { expect, test } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+test("timer stays pinned and coach adapts only the next unfinished set", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Start training", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Build a workout", exact: false })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Search exercises" })
+    .fill("legpress");
+  await page
+    .getByRole("button", { name: "Add Seated leg press", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  const timer = page.getByLabel("Rest timer", { exact: true });
+  await expect(timer).toBeVisible();
+  await page
+    .getByRole("button", { name: "Complete set", exact: true })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Easy", exact: true }).click();
+  await page.getByRole("button", { name: "Coach & chat", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Apply to next set", exact: true })
+    .click();
+  await expect(
+    page.getByRole("spinbutton", { name: "reps", exact: true }).nth(1),
+  ).toHaveValue("11");
+  await page
+    .getByLabel("Question for your coach", { exact: true })
+    .fill("What should I do next?");
+  await page.getByText("Workout context to share", { exact: true }).click();
+  await expect(page.getByLabel("Workout context for ChatGPT")).toHaveValue(
+    /Easy/,
+  );
+  await page.getByRole("button", { name: "Close coach", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Complete set", exact: true })
+    .last()
+    .scrollIntoViewIfNeeded();
+  const bounds = await timer.boundingBox();
+  expect(bounds!.y).toBeGreaterThanOrEqual(0);
+  expect(bounds!.y + bounds!.height).toBeLessThan(page.viewportSize()!.height);
+  await page.screenshot({
+    path: `test-results/${test.info().project.name}-pinned-coach.png`,
+  });
+  await expect(page.locator(".save-status")).toContainText("Saved on this device");
+  await page.reload();
+  await expect(
+    page.getByRole("spinbutton", { name: "reps", exact: true }).nth(1),
+  ).toHaveValue("11");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
 test("independent routine sets retain targets and types into the active workout", async ({
   page,
 }) => {
@@ -33,11 +96,15 @@ test("independent routine sets retain targets and types into the active workout"
       .getByLabel(`Set type for Seated leg press set ${index}`, { exact: true })
       .selectOption(type);
   }
-  await page.screenshot({path:`test-results/${test.info().project.name}-routine.png`,fullPage:true});
+  await page.screenshot({
+    path: `test-results/${test.info().project.name}-routine.png`,
+    fullPage: true,
+  });
   await page.getByRole("button", { name: "Add set", exact: true }).click();
   await page
     .getByRole("button", { name: "Remove Seated leg press set 4", exact: true })
     .click();
+  await expect(page.locator(".save-status")).toContainText("Saved on this device");
   await page.reload();
   await page
     .locator("nav:visible")
@@ -68,6 +135,7 @@ test("independent routine sets retain targets and types into the active workout"
     .getByRole("button", { name: "Complete set", exact: true })
     .first()
     .click();
+  await expect(page.locator(".save-status")).toContainText("Saved on this device");
   await page.reload();
   await expect(
     page.getByLabel("Set type for Seated leg press set 1", { exact: true }),
@@ -132,6 +200,7 @@ test("Excel upload reviews before saving and persists once", async ({
   await expect(
     page.getByText("Workout added to your history.", { exact: true }),
   ).toBeVisible();
+  await expect(page.locator(".save-status")).toContainText("Saved on this device");
   await page.reload();
   await settings();
   await upload();
@@ -181,6 +250,7 @@ test("create, log, recover and finish a workout", async ({ page }) => {
     })
     .fill("160");
   await expect(page.getByRole("status")).toContainText("Saved on this device");
+  await expect(page.locator(".save-status")).toContainText("Saved on this device");
   await page.reload();
   await page
     .locator("nav:visible")
@@ -203,6 +273,7 @@ test("create, log, recover and finish a workout", async ({ page }) => {
     .click();
   await page.getByRole("button", { name: "Easy", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Saved on this device");
+  await expect(page.locator(".save-status")).toContainText("Saved on this device");
   await page.reload();
   await expect(
     page.getByRole("button", { name: "✓ Logged", exact: true }),
@@ -262,6 +333,7 @@ test("custom exercises survive reload and filters stay deterministic", async ({
     .getByRole("button", { name: "Save exercise", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText("Saved on this device");
+  await expect(page.locator(".save-status")).toContainText("Saved on this device");
   await page.reload();
   await page
     .locator("nav:visible")
@@ -325,6 +397,7 @@ test("a workout link adds history once and preserves existing workouts", async (
   await expect(
     page.getByRole("heading", { name: "Imported session", exact: true }),
   ).toHaveCount(1);
+  await expect(page.locator(".save-status")).toContainText("Saved on this device");
   await page.reload();
   await page
     .locator("nav:visible")

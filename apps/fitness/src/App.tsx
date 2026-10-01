@@ -18,6 +18,7 @@ import {
   type State,
   type Workout,
 } from "./domain/model";
+import { SessionCoach } from "./SessionCoach";
 import { RoutineSets } from "./RoutineSets";
 import { ExcelImport } from "./ExcelImport";
 import {
@@ -393,14 +394,15 @@ export function App() {
                         />
                       </div>
                     </section>
-                    {(session.restEndsAt ||
-                      session.pausedRest !== undefined) && (
+                    <div className="workout-dock">
                       <section className="rest panel" aria-label="Rest timer">
                         <div>
                           <span className="eyebrow">
                             {session.pausedRest !== undefined
                               ? "REST PAUSED"
-                              : "RECOVER & RESET"}
+                              : session.restEndsAt
+                                ? "RECOVER & RESET"
+                                : "READY FOR YOUR SET"}
                           </span>
                           <strong>
                             {formatTime(
@@ -417,6 +419,10 @@ export function App() {
                         <div className="row">
                           <button
                             className="quiet"
+                            disabled={
+                              !session.restEndsAt &&
+                              session.pausedRest === undefined
+                            }
                             onClick={() =>
                               mutateSession((s) =>
                                 s.pausedRest !== undefined
@@ -477,7 +483,12 @@ export function App() {
                           </button>
                         </div>
                       </section>
-                    )}
+                      <SessionCoach
+                        session={session}
+                        profile={state.profile}
+                        onChange={mutateSession}
+                      />
+                    </div>
                     <div className="workout-grid">
                       {session.exercises.map((exercise, ei) => (
                         <section
@@ -673,11 +684,18 @@ export function App() {
                                               : "chip"
                                           }
                                           onClick={() =>
-                                            mutateSession((s) =>
-                                              editSet(s, exercise.id, set.id, {
-                                                difficulty: d,
-                                              }),
-                                            )
+                                            mutateSession((s) => ({
+                                              ...editSet(
+                                                s,
+                                                exercise.id,
+                                                set.id,
+                                                { difficulty: d },
+                                              ),
+                                              coachFeedback: {
+                                                exerciseId: exercise.id,
+                                                setId: set.id,
+                                              },
+                                            }))
                                           }
                                         >
                                           {d}

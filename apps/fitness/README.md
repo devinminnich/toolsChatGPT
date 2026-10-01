@@ -24,7 +24,9 @@ For production assets: `npm run build`. Serve `dist` over HTTPS to enable the se
 - Add, remove and reorder routine sets; edit set types during a workout. Existing routines migrate automatically without changing history.
 - Automatic recovery of unfinished workout drafts.
 - Active sessions: prefilled set controls, completion, difficulty, skip/restore and manual corrections.
-- Absolute-time rest timer, pause/resume, extend and skip.
+- Pinned rest timer and coach panel visible throughout the active workout; pause/resume, extend and skip.
+- Goal-aware local next-set suggestions from difficulty, applied only after user confirmation.
+- Copy a question with actual/planned set context into the ChatGPT coaching conversation.
 - IndexedDB persistence, save/error status and active-session recovery.
 - Previous comparable set results, completed workout history and logged load/reps volume.
 - Unit conversion for saved templates; each performed session retains its original units.
@@ -62,3 +64,11 @@ See ../../docs/fitness-app-specification.md for the full product and next milest
 In Settings, download the Excel template. Fill B4 with workout name, B5 with date (YYYY-MM-DD), and B6 with lb or kg. Starting at row 10, enter one completed set per row with exercise name, set number, weight and reps. Supported names and aliases are listed on Exercises. Saved custom rep exercises are also accepted by exact name. Use 0 for bodyweight and per-hand load for dumbbells. Number sets from 1 per exercise without gaps. Keep the template title and headers in place.
 
 Upload the .xlsx in Settings, review the preview, then choose Add to history. Cancel leaves history unchanged. Invalid rows are rejected with row numbers. Files are parsed locally and limited to 2 MB, 30 exercises and 50 sets per exercise. Identical contents generate a stable ID so reimporting cannot create duplicates. Imported workouts retain date and unit; time, duration and difficulty are unspecified. Desktop imports remain on that browser until cloud sync is implemented.
+
+## Coaching prototype
+
+Devin uses the assistant in the ChatGPT conversation as the AI coach for this single-user preview. The in-app Coach & chat panel sits beside the sticky rest timer. It composes a question and copies a workout summary to paste into that conversation. No AI response is simulated in the app, and there are no model calls or paid-service credentials. The manual handoff is temporary.
+
+The local progression prototype suggests one additional rep for general fitness, muscle growth, fat loss or endurance. Strength prefers one user-confirmed equipment increment, capped at 5% of current load. Rep thresholds (8 strength, 12 general/muscle, 20 endurance) are prototype controls rather than individualized prescriptions. Warm-up/drop/timed sets, changed planned targets and completed results are protected. About right/Hard retain targets; Failed never increases them. Every change requires Apply to next set and leaves saved routines untouched.
+
+Reference for goal-specific programming: ACSM 2026 update, https://acsm.org/resistance-training-guidelines-update-2026/ . It supports individualized goal-specific load/volume, not these exact prototype thresholds or a claim that Easy alone establishes readiness to progress.

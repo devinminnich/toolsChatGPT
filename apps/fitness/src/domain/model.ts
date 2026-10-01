@@ -62,6 +62,8 @@ export type Session = {
   }[];
   restEndsAt?: number;
   pausedRest?: number;
+  coachIncrement?: number;
+  coachFeedback?: { exerciseId: string; setId: string; applied?: boolean };
 };
 export type Profile = {
   name: string;
