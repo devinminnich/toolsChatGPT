@@ -1,6 +1,7 @@
 name: iTry CI
 on:
   push:
+    branches: ['feature/itry-foundation']
     paths: ['apps/itry/**']
   pull_request:
     paths: ['apps/itry/**']
