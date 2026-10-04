@@ -2,7 +2,7 @@
 
 ## Working prototype
 
-The repository now contains a responsive interactive web prototype for the core iTry experience plus a Chrome/Edge Manifest V3 gift-helper extension prototype.
+The repository contains a responsive interactive web prototype for the core iTry experience plus a Chrome/Edge Manifest V3 gift-helper extension prototype.
 
 ### Web prototype demonstrates
 - Upcoming important occasion
@@ -29,22 +29,16 @@ The repository now contains a responsive interactive web prototype for the core 
 - Giver-private budgets/settings and recipient-private preference signals modeled separately
 - Environment template uses the modern Supabase publishable-key convention
 
-## Deliberately not connected to the existing Supabase project
+## Backend connection status
 
-The only Supabase project currently visible to the build tooling predates iTry and may belong to another tool. iTry therefore does not mutate that project's database. The schema is ready to apply once iTry has a dedicated backend or the existing project is explicitly designated for iTry.
+The only Supabase project visible to the build tooling predates iTry and may belong to another tool, so the build does not mutate that database. The iTry schema is ready to apply when a dedicated iTry backend is selected.
 
 ## External integrations
 
 Amazon/retailer commerce is represented in the architecture but not hard-coded with fake credentials or unsupported checkout APIs. Real catalog and transaction integrations require provider enrollment/credentials.
 
-## Test target
+## Build verification
 
-Run from `apps/itry`:
+GitHub Actions runs the production TypeScript/Vite build for changes under `apps/itry`. From the app directory, local development uses `npm install`, `npm run dev`, and `npm run build`.
 
-```sh
-npm install
-npm run dev
-npm run build
-```
-
-The app is designed as an isolated Vite workspace so it does not modify the existing renovation or fitness apps.
+The app is isolated under `apps/itry` and does not modify the renovation or fitness application code.
