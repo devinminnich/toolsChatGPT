@@ -4,6 +4,7 @@
 - `brand.md` — working name, promise and product voice.
 - `technical-architecture.md` — implementation architecture.
 - `architecture-decisions.md` — major implementation decisions and rationale.
+- `contact-model.md` — accepted connections, private contacts and relationship labels.
 - `privacy-invariants.md` — product/security rules that must remain true.
 - `data-boundaries.md` — who owns and can see each data class.
 - `occasion-model.md` — common/custom occasion ownership and overrides.
