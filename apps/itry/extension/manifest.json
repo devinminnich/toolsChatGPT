@@ -1,0 +1,1 @@
+{"manifest_version":3,"name":"iTry Gift Helper","version":"0.1.0","description":"Save gift-relevant interests to your own iTry profile when you choose.","permissions":["storage","activeTab","scripting"],"action":{"default_popup":"popup.html","default_title":"iTry"}}
