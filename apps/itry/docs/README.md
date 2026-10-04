@@ -8,6 +8,7 @@
 - `data-boundaries.md` — who owns and can see each data class.
 - `occasion-model.md` — common/custom occasion ownership and overrides.
 - `autopilot.md` — opt-in ceiling, veto and approval behavior.
+- `recommendation-policy.md` — relevance-first ranking and explanation rules.
 - `security-review.md` — prototype security review and production follow-ups.
 - `accessibility.md` — accessibility baseline and beta follow-ups.
 - `provider-interface.md` — retailer/merchant capability model.
