@@ -9,6 +9,7 @@
 - `security-review.md` — prototype security review and production follow-ups.
 - `accessibility.md` — accessibility baseline and beta follow-ups.
 - `provider-interface.md` — retailer/merchant capability model.
+- `notification-model.md` — future action-oriented notifications.
 - `prototype-test-plan.md` — acceptance checklist.
 - `qa-notes.md` — current and production QA focus.
 - `implementation-checklist.md` — completed prototype versus production integrations.
