@@ -1,0 +1,3 @@
+# Preference model
+
+The product goal is minimal maintenance. Recipient-owned preference evidence may include explicit Love it / Something like this / Already own it / Not interested signals plus future consented shopping-interest signals. The optional preference dashboard lets the recipient inspect/correct inferred topics. Givers never receive the underlying evidence. The current extension proof of concept is user initiated; any future background-learning implementation must preserve the same recipient-only boundary, global pause control, sensitive-context exclusions and data minimization requirements.
