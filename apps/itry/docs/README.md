@@ -6,6 +6,7 @@
 - `data-boundaries.md` — who owns and can see each data class.
 - `provider-interface.md` — retailer/merchant capability model.
 - `prototype-test-plan.md` — acceptance checklist.
+- `implementation-checklist.md` — completed prototype versus production integrations.
 - `demo-script.md` — walkthrough of the prototype.
 - `design-notes.md` — interface rationale.
 - `build-status.md` — what is implemented versus externally blocked.
