@@ -15,6 +15,7 @@
 - `production-prerequisites.md` — accounts/services needed for a public beta.
 - `prototype-limitations.md` — what the demo intentionally does not claim to do.
 - `launch-metrics.md` — product measures centered on successful gifting.
+- `future-experiences.md` — post-V1 experience/group-gifting constraints.
 - `demo-script.md` — walkthrough of the prototype.
 - `design-notes.md` — interface rationale.
 - `build-status.md` — what is implemented versus externally blocked.
