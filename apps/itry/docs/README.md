@@ -1,6 +1,7 @@
 # iTry docs
 
 - `product-spec.md` — concise product contract from Discovery.
+- `v1-scope.md` — V1 boundary versus later expansion.
 - `brand.md` — working name, promise and product voice.
 - `technical-architecture.md` — implementation architecture.
 - `architecture-decisions.md` — major implementation decisions and rationale.
