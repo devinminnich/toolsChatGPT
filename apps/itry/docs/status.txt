@@ -1,0 +1,2 @@
+iTry prototype 0.1.0: READY FOR CONCEPT TESTING
+Build target: responsive web + Chrome/Edge helper

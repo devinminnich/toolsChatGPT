@@ -1,0 +1,4 @@
+export type AutopilotState='candidate'|'veto_pending'|'approved_by_timeout'|'explicitly_approved'|'vetoed'|'approval_required'|'purchase_pending'|'purchased'|'failed'|'cancelled';
+export interface AutopilotPolicy{enabled:boolean;hardMax:number;vetoWindowHours:number}
+export interface PurchaseDecision{allowed:boolean;state:AutopilotState;reason:string}
+export function canSchedulePurchase(price:number,policy:AutopilotPolicy,duplicateRisk:boolean):PurchaseDecision{if(!policy.enabled)return{allowed:false,state:'cancelled',reason:'Autopilot is off'};if(duplicateRisk)return{allowed:false,state:'candidate',reason:'Possible duplicate requires user action'};if(price>policy.hardMax)return{allowed:false,state:'approval_required',reason:'Explicit approval required above hard maximum'};return{allowed:true,state:'veto_pending',reason:`Veto window required for ${policy.vetoWindowHours} hours`}}
