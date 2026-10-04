@@ -1,6 +1,6 @@
 # iTry docs
 
-Start with `review-first.md` and `demo-script.md`. Current prototype version: `version.md`.
+Start with `review-first.md` and `demo-script.md`. Current prototype version: `version.md`; changes: `changelog.md`.
 
 Product: `product-spec.md`, `v1-scope.md`, `brand.md`, `contact-model.md`, `preference-model.md`, `occasion-model.md`, `autopilot.md`, `recommendation-policy.md`, `fulfillment-model.md`, `merchant-model.md`, `notification-model.md`, `future-experiences.md`.
 
