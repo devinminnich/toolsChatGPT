@@ -26,6 +26,7 @@
 - `launch-metrics.md` — product measures centered on successful gifting.
 - `future-experiences.md` — post-V1 experience/group-gifting constraints.
 - `demo-script.md` — walkthrough of the prototype.
+- `testing-hand-off.md` — how to review the prototype safely.
 - `design-notes.md` — interface rationale.
 - `build-status.md` — what is implemented versus externally blocked.
 - `release-notes-prototype.md` — prototype release boundary.
