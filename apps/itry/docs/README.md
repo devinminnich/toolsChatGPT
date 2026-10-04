@@ -1,34 +1,9 @@
 # iTry docs
 
-- `product-spec.md` — concise product contract from Discovery.
-- `v1-scope.md` — V1 boundary versus later expansion.
-- `brand.md` — working name, promise and product voice.
-- `technical-architecture.md` — implementation architecture.
-- `architecture-decisions.md` — major implementation decisions and rationale.
-- `contact-model.md` — accepted connections, private contacts and relationship labels.
-- `preference-model.md` — recipient-owned preference evidence and controls.
-- `privacy-invariants.md` — product/security rules that must remain true.
-- `data-boundaries.md` — who owns and can see each data class.
-- `occasion-model.md` — common/custom occasion ownership and overrides.
-- `autopilot.md` — opt-in ceiling, veto and approval behavior.
-- `recommendation-policy.md` — relevance-first ranking and explanation rules.
-- `fulfillment-model.md` — private delivery-profile behavior.
-- `merchant-model.md` — transaction-based merchant model and ranking guardrails.
-- `security-review.md` — prototype security review and production follow-ups.
-- `accessibility.md` — accessibility baseline and beta follow-ups.
-- `provider-interface.md` — retailer/merchant capability model.
-- `notification-model.md` — future action-oriented notifications.
-- `prototype-test-plan.md` — acceptance checklist.
-- `qa-notes.md` — current and production QA focus.
-- `implementation-checklist.md` — completed prototype versus production integrations.
-- `production-prerequisites.md` — accounts/services needed for a public beta.
-- `prototype-limitations.md` — what the demo intentionally does not claim to do.
-- `launch-metrics.md` — product measures centered on successful gifting.
-- `future-experiences.md` — post-V1 experience/group-gifting constraints.
-- `demo-script.md` — walkthrough of the prototype.
-- `testing-hand-off.md` — how to review the prototype safely.
-- `design-notes.md` — interface rationale.
-- `build-status.md` — what is implemented versus externally blocked.
-- `release-notes-prototype.md` — prototype release boundary.
-- `final-prototype-state.md` — completed build summary.
-- `roadmap.md` — production sequence.
+Start with `review-first.md` and `demo-script.md`.
+
+Product: `product-spec.md`, `v1-scope.md`, `brand.md`, `contact-model.md`, `preference-model.md`, `occasion-model.md`, `autopilot.md`, `recommendation-policy.md`, `fulfillment-model.md`, `merchant-model.md`, `notification-model.md`, `future-experiences.md`.
+
+Engineering: `technical-architecture.md`, `architecture-decisions.md`, `provider-interface.md`, `data-boundaries.md`, `privacy-invariants.md`, `security-review.md`, `accessibility.md`.
+
+Delivery/QA: `prototype-test-plan.md`, `qa-notes.md`, `implementation-checklist.md`, `production-prerequisites.md`, `prototype-limitations.md`, `testing-hand-off.md`, `build-status.md`, `release-notes-prototype.md`, `final-prototype-state.md`, `roadmap.md`, `launch-metrics.md`, `design-notes.md`.
