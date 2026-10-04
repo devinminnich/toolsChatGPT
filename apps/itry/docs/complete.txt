@@ -1,1 +1,1 @@
-iTry 0.1.0 prototype: complete.
+iTry 0.1.0 prototype: complete and ready for testing.
