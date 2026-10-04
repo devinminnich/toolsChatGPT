@@ -11,6 +11,7 @@
 - `prototype-test-plan.md` — acceptance checklist.
 - `implementation-checklist.md` — completed prototype versus production integrations.
 - `production-prerequisites.md` — accounts/services needed for a public beta.
+- `prototype-limitations.md` — what the demo intentionally does not claim to do.
 - `launch-metrics.md` — product measures centered on successful gifting.
 - `demo-script.md` — walkthrough of the prototype.
 - `design-notes.md` — interface rationale.
