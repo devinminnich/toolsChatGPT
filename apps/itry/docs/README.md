@@ -4,6 +4,7 @@
 - `technical-architecture.md` — implementation architecture.
 - `privacy-invariants.md` — product/security rules that must remain true.
 - `data-boundaries.md` — who owns and can see each data class.
+- `security-review.md` — prototype security review and production follow-ups.
 - `provider-interface.md` — retailer/merchant capability model.
 - `prototype-test-plan.md` — acceptance checklist.
 - `implementation-checklist.md` — completed prototype versus production integrations.
