@@ -1,6 +1,7 @@
 # iTry docs
 
 - `product-spec.md` — concise product contract from Discovery.
+- `brand.md` — working name, promise and product voice.
 - `technical-architecture.md` — implementation architecture.
 - `architecture-decisions.md` — major implementation decisions and rationale.
 - `privacy-invariants.md` — product/security rules that must remain true.
