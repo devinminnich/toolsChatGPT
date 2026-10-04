@@ -2,6 +2,7 @@
 
 - `product-spec.md` — concise product contract from Discovery.
 - `technical-architecture.md` — implementation architecture.
+- `architecture-decisions.md` — major implementation decisions and rationale.
 - `privacy-invariants.md` — product/security rules that must remain true.
 - `data-boundaries.md` — who owns and can see each data class.
 - `security-review.md` — prototype security review and production follow-ups.
