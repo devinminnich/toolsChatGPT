@@ -9,6 +9,7 @@
 - `security-review.md` — prototype security review and production follow-ups.
 - `provider-interface.md` — retailer/merchant capability model.
 - `prototype-test-plan.md` — acceptance checklist.
+- `qa-notes.md` — current and production QA focus.
 - `implementation-checklist.md` — completed prototype versus production integrations.
 - `production-prerequisites.md` — accounts/services needed for a public beta.
 - `prototype-limitations.md` — what the demo intentionally does not claim to do.
