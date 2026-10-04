@@ -1,44 +1,15 @@
 # iTry build status
 
-## Working prototype
+## Implemented prototype
 
-The repository contains a responsive interactive web prototype for the core iTry experience plus a Chrome/Edge Manifest V3 gift-helper extension prototype.
+The repository contains a responsive interactive web prototype for the core iTry experience and a Chrome/Edge Manifest V3 gift-helper extension prototype.
 
-### Web prototype demonstrates
-- Upcoming important occasion
-- People and relationship labels
-- Private budgets
-- Gift recommendations and privacy-safe rationale
-- Possible-duplicate warning
-- Autopilot toggle and hard limit
-- Mandatory-veto language
-- Optional preference dashboard
-- Learning/privacy control
-- Private delivery-profile concept
-- Extension-style preference feedback
+Web surfaces demonstrate upcoming occasions, people/relationship labels, private budgets, explainable gift recommendations, possible-duplicate warnings, Autopilot controls, the hard spending ceiling, the mandatory veto concept, optional private preferences, learning/privacy controls, and the private delivery-profile concept.
 
-### Extension prototype demonstrates
-- User-initiated capture from the active page
-- Love it / Something like this / Already own it / Not interested
-- Local normalized preference signal
-- No continuous raw browsing-history collection
+The extension is deliberately user-initiated in this build: it can save Love it / Something like this / Already own it / Not interested from the active page to local extension storage. It does not request broad browsing-history permission.
 
-### Backend package
-- Supabase-ready schema included in `supabase/001_itry_schema.sql`
-- RLS enabled for every exposed iTry table
-- Giver-private budgets/settings and recipient-private preference signals modeled separately
-- Environment template uses the modern Supabase publishable-key convention
+A Supabase-ready RLS schema is included under `supabase/001_itry_schema.sql`. The only Supabase project visible to the build tooling predates iTry and may belong to another tool, so this build does not mutate that database without explicit designation.
 
-## Backend connection status
+Amazon/retailer commerce is represented by the architecture, but the prototype does not fabricate provider access or payment credentials. Real catalog, affiliate, and direct-purchase flows require provider enrollment/credentials.
 
-The only Supabase project visible to the build tooling predates iTry and may belong to another tool, so the build does not mutate that database. The iTry schema is ready to apply when a dedicated iTry backend is selected.
-
-## External integrations
-
-Amazon/retailer commerce is represented in the architecture but not hard-coded with fake credentials or unsupported checkout APIs. Real catalog and transaction integrations require provider enrollment/credentials.
-
-## Build verification
-
-GitHub Actions runs the production TypeScript/Vite build for changes under `apps/itry`. From the app directory, local development uses `npm install`, `npm run dev`, and `npm run build`.
-
-The app is isolated under `apps/itry` and does not modify the renovation or fitness application code.
+GitHub Actions is configured to run the production TypeScript/Vite build for `apps/itry` changes using Node 22.
