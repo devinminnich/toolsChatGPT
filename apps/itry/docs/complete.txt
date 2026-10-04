@@ -1,1 +1,1 @@
-iTry 0.1.0 prototype build complete and ready for concept review.
+iTry 0.1.0 prototype: complete.
