@@ -1,5 +1,6 @@
 # iTry docs
 
+- `product-spec.md` — concise product contract from Discovery.
 - `technical-architecture.md` — implementation architecture.
 - `privacy-invariants.md` — product/security rules that must remain true.
 - `data-boundaries.md` — who owns and can see each data class.
