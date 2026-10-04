@@ -30,4 +30,5 @@
 - `design-notes.md` — interface rationale.
 - `build-status.md` — what is implemented versus externally blocked.
 - `release-notes-prototype.md` — prototype release boundary.
+- `final-prototype-state.md` — completed build summary.
 - `roadmap.md` — production sequence.
