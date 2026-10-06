@@ -22,7 +22,7 @@ import {
   type State,
   type Workout,
 } from "./domain/model";
-import { importFromHash } from "./domain/importRoutine";
+import { importFromHash, importSharedPlan } from "./domain/importRoutine";
 import { recordDifficulty } from "./domain/coach";
 import { SessionCoach } from "./SessionCoach";
 import { RoutineSets } from "./RoutineSets";
@@ -109,10 +109,14 @@ export function App() {
       .then(async (s) => {
         if (alive) {
           try {
-            const imported = importFromHash(s, location.hash, [
-              ...catalog,
-              ...s.custom,
-            ]);
+            const available = [...catalog, ...s.custom];
+            const plan = new URLSearchParams(location.search).get("plan");
+            if (plan && location.hash)
+              throw new Error("Open one import link at a time.");
+            const imported = plan
+              ? await importSharedPlan(s, plan, available)
+              : importFromHash(s, location.hash, available);
+            if (!alive) return;
             if (imported) {
               await save(imported.next);
               if (!alive) return;
@@ -121,11 +125,16 @@ export function App() {
               window.history.replaceState(
                 null,
                 "",
-                location.pathname + location.search,
+                (() => {
+                  const params = new URLSearchParams(location.search);
+                  params.delete("plan");
+                  return location.pathname + (params.size ? `?${params}` : "");
+                })(),
               );
               setTab(imported.tab);
             }
           } catch (e) {
+            if (!alive) return;
             setError(`Workout was not added: ${(e as Error).message}`);
           }
           setState(s);

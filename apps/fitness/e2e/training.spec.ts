@@ -1,5 +1,72 @@
 import { expect, test } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+test("short shoulder workout link saves preset weights and warm-ups once and survives reload", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/?plan=shoulders-biceps-2026-10-05");
+  await expect(
+    page.getByText("Routine saved. Review your weights before starting.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Start training", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Shoulders + Biceps - 45 min",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(
+    page.getByLabel("Weight (lb) for Seated dumbbell shoulder press set 1", {
+      exact: true,
+    }),
+  ).toHaveValue("30");
+  await expect(
+    page
+      .getByLabel("Weight (lb) for Dumbbell lateral raise set 1", {
+        exact: true,
+      })
+      .first(),
+  ).toHaveValue("5");
+  await expect(
+    page
+      .getByLabel("Set type for Dumbbell lateral raise set 1", { exact: true })
+      .first(),
+  ).toHaveValue("Warm-up");
+  await page.getByRole("button", { name: "Save workout", exact: true }).click();
+  await expect(page.locator(".save-status")).toContainText(
+    "Saved on this device",
+  );
+  await page.goto("/?plan=shoulders-biceps-2026-10-05");
+  await expect(
+    page.getByText("This routine is already saved.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Shoulders + Biceps - 45 min",
+      exact: true,
+    }),
+  ).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Start workout", exact: true })
+    .click();
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).nth(2),
+  ).toHaveValue("30");
+  await expect(page.locator(".save-status")).toContainText(
+    "Saved on this device",
+  );
+  await page.reload();
+  await expect(
+    page.getByRole("spinbutton", { name: "lb", exact: true }).nth(2),
+  ).toHaveValue("30");
+  expect(errors).toEqual([]);
+});
 test("deleting a stored workout keeps its history after reload and cancellation keeps the routine", async ({
   page,
 }) => {

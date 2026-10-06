@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "id": "devin-back-biceps-2026-10-05",
+  "date": "2026-10-05",
+  "name": "Back and Biceps - 45 min",
+  "unit": "lb",
+  "exercises": [
+    ["lat-pulldown", 3, 8, 12],
+    ["seated-cable-row", 3, 8, 12],
+    ["chest-supported-dumbbell-row", 2, 10, 12],
+    ["dumbbell-curl", 3, 10, 12],
+    ["hammer-curl", 2, 10, 15]
+  ]
+}

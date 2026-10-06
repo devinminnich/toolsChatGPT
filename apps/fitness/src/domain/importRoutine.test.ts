@@ -1,9 +1,11 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
+import plan from "../../public/workouts/shoulders-biceps-2026-10-05.json";
 import { catalog } from "./catalog";
 import { emptyState, startSession } from "./model";
 import { encodeWorkoutImport } from "./importWorkout";
 import {
   importRoutine,
+  importSharedPlan,
   importFromHash,
   type RoutineImport,
 } from "./importRoutine";
@@ -43,4 +45,74 @@ it("rejects invalid dates, missing exercises, malformed ranges and set counts", 
     { ...p, exercises: [["plank", 0, 30, 45]] },
   ])
     expect(() => importRoutine(emptyState(), bad, catalog)).toThrow();
+});
+
+it("imports the shoulder routine's warm-up loads, working loads, ranges and rest times without altering history", () => {
+  const original = emptyState();
+  const next = importRoutine(original, plan, catalog);
+  const w = next.workouts[0];
+  expect(
+    w.exercises.flatMap((e) => e.sets).filter((s) => s.type === "Working"),
+  ).toHaveLength(17);
+  expect(w.exercises[0].sets[0]).toMatchObject({
+    type: "Warm-up",
+    weight: 5,
+    reps: 15,
+  });
+  expect(w.exercises[1].sets[0]).toMatchObject({
+    type: "Warm-up",
+    weight: 10,
+    reps: 15,
+  });
+  const active = startSession(w, catalog, "lb");
+  expect(active.exercises[2].rest).toBe(90);
+  expect(active.exercises[2].sets.map((s) => s.weight)).toEqual([30, 30, 30]);
+  expect(active.exercises[3].sets.map((s) => s.weight)).toEqual([
+    12.5, 12.5, 12.5,
+  ]);
+  expect(active.exercises[4].sets[0].targetRange).toEqual({ min: 10, max: 15 });
+  expect(next.history).toBe(original.history);
+  expect(importRoutine(next, plan, catalog)).toBe(next);
+});
+it("rejects malformed detailed prescriptions", () => {
+  for (const patch of [
+    { rest: -1 },
+    { sets: [] },
+    { sets: [{ type: "Working", weight: -10, min: 8, max: 12 }] },
+    { sets: [{ type: "Unknown", weight: 30, min: 8, max: 12 }] },
+    { sets: [{ type: "Working", weight: 30, min: 12, max: 8 }] },
+  ]) {
+    expect(() =>
+      importRoutine(
+        emptyState(),
+        { ...plan, exercises: [{ ...plan.exercises[0], ...patch }] },
+        catalog,
+      ),
+    ).toThrow();
+  }
+});
+it("loads only validated local plan paths and reports unavailable plans", async () => {
+  const mock = vi.fn().mockResolvedValue({ ok: true, json: async () => plan });
+  vi.stubGlobal("fetch", mock);
+  try {
+    const imported = await importSharedPlan(
+      emptyState(),
+      "shoulders-biceps-2026-10-05",
+      catalog,
+    );
+    expect(mock).toHaveBeenCalledWith(
+      "./workouts/shoulders-biceps-2026-10-05.json",
+    );
+    expect(imported.next.workouts[0].name).toBe(plan.name);
+    await expect(
+      importSharedPlan(emptyState(), "../private", catalog),
+    ).rejects.toThrow("Invalid shared workout link");
+    expect(mock).toHaveBeenCalledTimes(1);
+    mock.mockResolvedValueOnce({ ok: false });
+    await expect(
+      importSharedPlan(emptyState(), "missing", catalog),
+    ).rejects.toThrow("could not be opened");
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

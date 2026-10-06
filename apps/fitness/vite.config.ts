@@ -14,7 +14,7 @@ export default defineConfig({
           .digest("hex")
           .slice(0, 12);
         const worker = readFileSync("dist/sw.js", "utf8").replace(
-          "fitness-shell-v2",
+          /fitness-shell-[a-zA-Z0-9-]+/,
           `fitness-shell-${hash}`,
         );
         writeFileSync("dist/sw.js", worker);

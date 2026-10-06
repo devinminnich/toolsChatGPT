@@ -1,0 +1,171 @@
+{
+  "v": 2,
+  "id": "devin-shoulders-biceps-2026-10-05",
+  "date": "2026-10-05",
+  "name": "Shoulders + Biceps - 45 min",
+  "unit": "lb",
+  "exercises": [
+    {
+      "exerciseId": "dumbbell-lateral-raise",
+      "rest": 30,
+      "sets": [
+        {
+          "type": "Warm-up",
+          "weight": 5,
+          "min": 15,
+          "max": 15
+        }
+      ]
+    },
+    {
+      "exerciseId": "dumbbell-curl",
+      "rest": 30,
+      "sets": [
+        {
+          "type": "Warm-up",
+          "weight": 10,
+          "min": 15,
+          "max": 15
+        }
+      ]
+    },
+    {
+      "exerciseId": "seated-dumbbell-shoulder-press",
+      "rest": 90,
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 30,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 30,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 30,
+          "min": 8,
+          "max": 12
+        }
+      ]
+    },
+    {
+      "exerciseId": "dumbbell-lateral-raise",
+      "rest": 60,
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 12.5,
+          "min": 10,
+          "max": 15
+        },
+        {
+          "type": "Working",
+          "weight": 12.5,
+          "min": 10,
+          "max": 15
+        },
+        {
+          "type": "Working",
+          "weight": 12.5,
+          "min": 10,
+          "max": 15
+        }
+      ]
+    },
+    {
+      "exerciseId": "reverse-pec-deck",
+      "rest": 60,
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 10,
+          "max": 15
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 10,
+          "max": 15
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 10,
+          "max": 15
+        }
+      ]
+    },
+    {
+      "exerciseId": "dumbbell-curl",
+      "rest": 60,
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 20,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 20,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 20,
+          "min": 8,
+          "max": 12
+        }
+      ]
+    },
+    {
+      "exerciseId": "hammer-curl",
+      "rest": 60,
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 20,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 20,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 20,
+          "min": 8,
+          "max": 12
+        }
+      ]
+    },
+    {
+      "exerciseId": "cable-curl",
+      "rest": 60,
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 10,
+          "max": 15
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 10,
+          "max": 15
+        }
+      ]
+    }
+  ]
+}

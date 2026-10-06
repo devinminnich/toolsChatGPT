@@ -80,3 +80,5 @@ In-progress workouts can move back to the saved-workout step with **Back to work
 Selecting **Warm-up** on an unfinished loaded set starts at 50% of its working weight, with an editable weight field and visible explanation. Switching back restores its working weight without repeated reductions. Completed results never change load from a set-type selection.
 
 Saved routine cards and the routine editor offer Delete with confirmation. Deletion removes only the routine and its draft; existing history and active sessions are preserved. Saved in-progress logs are moved to History before removing their resume card.
+
+Shared routines can use short URLs such as `?plan=shoulders-biceps-2026-10-05`. Plans load from validated local JSON paths, preserve stored history and active sessions, and save once by routine ID. Detailed imports retain independent warm-up/working/drop types, preset weights, rep ranges, and rest times. Original `#routine` links remain supported.
