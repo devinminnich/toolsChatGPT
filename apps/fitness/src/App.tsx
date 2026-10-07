@@ -27,6 +27,7 @@ import { recordDifficulty } from "./domain/coach";
 import { SessionCoach } from "./SessionCoach";
 import { RoutineSets } from "./RoutineSets";
 import { ExcelImport } from "./ExcelImport";
+import { CloudSync } from "./CloudSync";
 import {
   decodeWorkoutImport,
   importWorkout,
@@ -367,7 +368,7 @@ export function App() {
         <div className="sidebar-foot">
           <span className="pill">TRAINING PREVIEW</span>
           <p>Built around your next set.</p>
-          <small>Coach & cloud sync are coming in the next milestones.</small>
+          <small>Private history sync and read-only ChatGPT coaching.</small>
         </div>
       </aside>
       <main ref={mainRef}>
@@ -411,6 +412,10 @@ export function App() {
             </button>
           </div>
         )}
+        <CloudSync state={state} saveReady={status === "Saved on this device"} visible={tab === "Settings"} onChange={(fn) => {
+          const next = fn(latest.current);
+          if (next !== latest.current) update(next);
+        }} />
         {!state.profile ? (
           <section className="panel onboarding">
             <span className="eyebrow">START WITH YOU</span>
@@ -1280,9 +1285,9 @@ export function App() {
                   <span className="eyebrow">YOUR DATA</span>
                   <h2>Saved on this device.</h2>
                   <p>
-                    This preview stores workouts in your browser. Phone and
-                    desktop will sync once cloud login is connected. Clearing
-                    browser data removes this local copy.
+                    Workouts save in this browser first. Enable cloud sync above
+                    to back up completed results and share them with your coach.
+                    Routines and in-progress sessions remain on this device.
                   </p>
                   <form
                     onSubmit={(event) => {

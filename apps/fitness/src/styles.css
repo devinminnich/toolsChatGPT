@@ -1026,3 +1026,8 @@ button:hover:not(:disabled) {
   padding: 4px 16px 10px;
   font-size: 12px;
 }
+
+
+.cloud-sync[hidden] { display: none; }
+.cloud-sync { margin-bottom: 1rem; }
+.cloud-sync input[readonly] { font-size: .8rem; }

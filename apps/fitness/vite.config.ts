@@ -22,5 +22,7 @@ export default defineConfig({
     },
   ],
   base: "./",
+  build: { rollupOptions: { output: { manualChunks: { cloud: ["@supabase/supabase-js"] } } } },
   test: { include: ["src/**/*.test.ts"] },
 });
+

@@ -1,0 +1,4 @@
+[functions.fitness-coach]
+# Tool calls validate JWTs and explicit user consent in the function body.
+# OAuth discovery and MCP initialization expose metadata only.
+verify_jwt = false

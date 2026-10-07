@@ -89,6 +89,8 @@ export type Profile = {
 };
 export type State = {
   version: 2;
+  cloudOwnerId?: string;
+  cloudSyncEnabled?: boolean;
   profile?: Profile;
   custom: Exercise[];
   workouts: Workout[];
