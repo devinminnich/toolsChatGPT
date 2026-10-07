@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { State } from "../domain/model";
 import { applyAdvice, type CoachProposal } from "../domain/plugin";
-import type { FitnessPlugin } from "./bridge";
+import { trainingTime, type FitnessPlugin } from "./bridge";
 import { catalog } from "../domain/catalog";
 
 export function PluginCoach({ state, runtime, saved, onChange, compact = false }: {
@@ -11,7 +11,7 @@ export function PluginCoach({ state, runtime, saved, onChange, compact = false }
   const [proposals, setProposals] = useState<CoachProposal[]>([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [opened, setOpened] = useState(!compact);
+  const [opened, setOpened] = useState(true);
   const [undo, setUndo] = useState<CoachProposal>();
   const latest = useRef(state); latest.current = state;
   function targetText(proposal: CoachProposal, after = false) {
@@ -55,7 +55,8 @@ export function PluginCoach({ state, runtime, saved, onChange, compact = false }
   return <section className="panel plugin-coach" aria-label="AI Coach">
     <div className="coach-bar"><h2>AI Coach</h2>{compact && <button className="quiet" aria-expanded={opened} onClick={() => setOpened(!opened)}>{opened ? "Close AI Coach" : "Ask AI Coach"}</button>}</div>
     {opened && <>
-      <p>Your ChatGPT coach can review results, build workouts, and suggest your next set. Changes appear here for you to apply.</p>
+      <p>Gym uses your saved sets to coach your next move and plan future workouts. Log what you actually did, then rate the difficulty. Review and apply the coach’s recommendation here.</p>
+      <p className="muted">Goal: {state.profile?.goal ?? "Set your goal in Settings"} · {state.active ? `${trainingTime(state).remainingMinutes} minutes left of ` : "Session budget: "}{trainingTime(state).budgetMinutes} minutes · Results saved to your account</p>
       <div className="row">
         {['Plan my next workout', 'Review my progress', 'What should I do next set?'].map((prompt) => <button key={prompt} className="quiet" onClick={() => setQuestion(prompt)}>{prompt}</button>)}
       </div>

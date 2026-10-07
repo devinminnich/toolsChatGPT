@@ -86,6 +86,8 @@ export type Profile = {
   involvement: string;
   autonomy: string;
   equipment: string[];
+  sessionMinutes?: number;
+  coachAfterSet?: boolean;
 };
 export type State = {
   version: 2;
@@ -444,4 +446,3 @@ export function deleteWorkout(
       : state.history,
   };
 }
-

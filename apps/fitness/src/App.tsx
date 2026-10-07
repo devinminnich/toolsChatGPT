@@ -62,6 +62,8 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [coachBusy, setCoachBusy] = useState(false);
+  const coachedSets = useRef(new Set<string>());
   const [importLink, setImportLink] = useState("");
   const [status, setStatus] = useState("Loading");
   const [tab, setTab] = useState<Tab>("Today");
@@ -278,6 +280,25 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
     const current = latest.current;
     if (current.active) update({ ...current, active: fn(current.active) });
   }
+  async function rateSet(exerciseId: string, setId: string, difficulty: "Easy" | "About right" | "Hard" | "Failed") {
+    const current = latest.current;
+    if (!current.active || coachBusy) return;
+    // The plugin's AI proposes changes; the legacy local auto-progression must not also alter targets.
+    const next = { ...current, active: recordDifficulty(plugin ? { ...current.active, coachAuto: false } : current.active, exerciseId, setId, difficulty, current.profile!.goal) };
+    const source = next.active.exercises.find((e) => e.id === exerciseId)?.sets.find((s) => s.id === setId);
+    const key = JSON.stringify([next.active.id, setId, difficulty, source?.weight, source?.reps, source?.duration, source?.distance]);
+    const ask = !!plugin && !!source?.completedAt && current.profile?.coachAfterSet !== false && current.profile?.involvement !== "Minimal" && !coachedSets.current.has(key);
+    if (ask) setCoachBusy(true);
+    try {
+      if (!(await update(next)) || !ask) return;
+      if (latest.current.active?.id !== next.active.id) return;
+      await plugin!.ask(next, `I just logged and rated set ${setId} of exercise ${exerciseId} as ${difficulty}. Assess my next unfinished set using today's actual performance, previous results, my goal and remaining time. If no sets remain, summarize the session. Keep your recommendation brief.`);
+      coachedSets.current.add(key);
+      setNotice("Set saved. Gym is assessing your next move in the conversation; refresh coach replies to see its recommendation here.");
+    } catch (e) {
+      setNotice(`Your set is saved, but Gym could not receive the coaching request: ${(e as Error).message}. Ask the AI Coach to retry.`);
+    } finally { if (ask) setCoachBusy(false); }
+  }
   async function removeWorkout(workout: Workout) {
     if (
       !(await confirmAction(
@@ -349,7 +370,7 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
   if (!ready)
     return (
       <main className="loading">
-        <h1>Fitness Coach</h1>
+        <h1>{plugin ? "Gym" : "Fitness Coach"}</h1>
         <p role="alert">{error || "Opening your training space…"}</p>
         <button onClick={() => location.reload()}>Reload</button>
       </main>
@@ -367,7 +388,7 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
         >
           ▥{" "}
           <span>
-            FITNESS<span className="brand-light"> COACH</span>
+            {plugin ? "GYM" : <>FITNESS<span className="brand-light"> COACH</span></>}
           </span>
         </a>
         <p className="sidebar-caption">YOUR TRAINING SPACE</p>
@@ -436,7 +457,7 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
           const next = fn(latest.current);
           if (next !== latest.current) update(next);
         }} />}
-        {plugin && <div className="plugin-toolbar"><span>Connected to your Fitness Coach account</span><button className="quiet" onClick={() => plugin.expand().catch((e) => setError(e.message))}>Expand workout app</button></div>}
+        {plugin && <div className="plugin-toolbar"><span>Gym · Your AI training advisor</span><button className="quiet" onClick={() => plugin.expand().catch((e) => setError(e.message))}>Expand Gym</button></div>}
         {plugin && tab === "AI Coach" && <PluginCoach state={state} runtime={plugin} saved={status === savedLabel} onChange={update} />}
         {!state.profile ? (
           <section className="panel onboarding">
@@ -590,12 +611,12 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
                           </button>
                         </div>
                       </section>
-                      <SessionCoach
+                      {!plugin && <SessionCoach
                         session={session}
                         profile={state.profile}
                         onChange={mutateSession}
                         embedded={!!plugin}
-                      />
+                      />}
                       {plugin && <PluginCoach compact state={state} runtime={plugin} saved={status === savedLabel} onChange={update} />}
                     </div>
                     <div className="workout-grid">
@@ -817,22 +838,13 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
                                       ).map((d) => (
                                         <button
                                           key={d}
+                                          disabled={coachBusy}
                                           className={
                                             set.difficulty === d
                                               ? "chip selected"
                                               : "chip"
                                           }
-                                          onClick={() =>
-                                            mutateSession((s) =>
-                                              recordDifficulty(
-                                                s,
-                                                exercise.id,
-                                                set.id,
-                                                d,
-                                                state.profile!.goal,
-                                              ),
-                                            )
-                                          }
+                                          onClick={() => void rateSet(exercise.id, set.id, d)}
                                         >
                                           {d}
                                         </button>
@@ -1310,7 +1322,7 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
                 <section className="panel">
                   <span className="eyebrow">YOUR DATA</span>
                   <h2>{plugin ? "Saved to your account." : "Saved on this device."}</h2>
-                  {plugin ? <p>Your preferences, workouts, active session and results save to your private Fitness Coach account. Completed results are also available to your authorized coach. Changes from another open view are protected; reload if a save reports a conflict.</p> : <p>
+                  {plugin ? <p>Gym remembers your preferences, workouts, active session and results in your private account. Your authorized AI coach uses these records across sessions. Changes from another open view are protected; reload if a save reports a conflict.</p> : <p>
                     Workouts save in this browser first. Enable cloud sync above
                     to back up completed results and share them with your coach.
                     Routines and in-progress sessions remain on this device.
@@ -1385,7 +1397,7 @@ export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
           </>
         )}
         <footer>
-          FITNESS COACH <span>{plugin ? "ChatGPT coaching · Private account storage" : "Training foundation · Device storage"}</span>
+          {plugin ? "GYM" : "FITNESS COACH"} <span>{plugin ? "ChatGPT coaching · Private account storage" : "Training foundation · Device storage"}</span>
         </footer>
       </main>
       <nav className="bottom-nav">
@@ -1654,6 +1666,13 @@ function ProfileForm({
           <option value="kg">Kilograms (kg)</option>
         </select>
       </label>
+      {coaching && <>
+        <label>Gym time per session (minutes)
+          <input type="number" min={5} max={240} step={1} required value={profile.sessionMinutes ?? 45} onChange={(e) => setProfile({ ...profile, sessionMinutes: Number(e.target.value) })} />
+        </label>
+        <label className="checkbox"><input type="checkbox" checked={profile.coachAfterSet !== false} onChange={(e) => setProfile({ ...profile, coachAfterSet: e.target.checked })} />Ask Gym for advice after I rate a completed set</label>
+        <p className="muted">With Coach or Highly engaged involvement, rating a saved set sends a coaching request to this conversation. Changes still require Apply. Minimal involvement lets you ask when you want advice.</p>
+      </>}
       <p className="muted">
         Unit changes apply to new sessions; history retains its original units.
       </p>

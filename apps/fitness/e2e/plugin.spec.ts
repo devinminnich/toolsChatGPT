@@ -18,7 +18,7 @@ test("replicated workout UI saves through MCP, receives AI advice, applies and u
         const n=m.params.name,a=m.params.arguments||{};
         if(n==='open_fitness_app')result={content:[],structuredContent:{revision,workoutCount:state.workouts.length,completedCount:state.history.length,activeName:state.active?.name},_meta:{state}};
         if(n==='save_training_state'){
-          if(a.revision!==revision)result={isError:true,content:[{type:'text',text:'Workout changed in another view. Reload before saving.'}]};
+          if(window.failSave || a.revision!==revision)result={isError:true,content:[{type:'text',text:'Workout changed in another view. Reload before saving.'}]};
           else{state=a.state;revision++;result={content:[],structuredContent:{revision}};}
         }
         if(n==='list_coach_proposals')result={content:[],structuredContent:{proposals}};
@@ -36,7 +36,21 @@ test("replicated workout UI saves through MCP, receives AI advice, applies and u
   const ui = page.frameLocator('iframe[title="Fitness Coach"]');
   await expect(ui.getByRole("heading", { name: "Plugin shoulder session", exact: true })).toBeVisible();
   await expect(ui.getByText("Saved to your account", { exact: false }).first()).toBeVisible();
-  await ui.getByRole("button", { name: /AI Coach/, exact: false }).last().click();
+  // A rated result is saved before requesting AI, and a repeated rating does not flood chat.
+  await ui.getByRole("button", { name: "Hard", exact: true }).first().click();
+  await expect(ui.getByText("Set saved. Gym is assessing", { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).calls.filter((x: string) => x === "ui/message").length)).toBe(1);
+  await ui.getByRole("button", { name: "Hard", exact: true }).first().click();
+  await expect(ui.getByText("Saved to your account", { exact: false }).first()).toBeVisible();
+  expect(await page.evaluate(() => (window as any).calls.filter((x: string) => x === "ui/message").length)).toBe(1);
+  await page.evaluate(() => { (window as any).failSave = true; });
+  await ui.getByRole("button", { name: "Easy", exact: true }).first().click();
+  await expect(ui.getByText("Saving failed:", { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).calls.filter((x: string) => x === "ui/message").length)).toBe(1);
+  await page.evaluate(() => { (window as any).failSave = false; });
+  await ui.getByRole("button", { name: "Easy", exact: true }).first().click();
+  await expect(ui.getByText("Saved to your account", { exact: false }).first()).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as any).calls.filter((x: string) => x === "ui/message").length)).toBe(2);
   await ui.getByLabel("Ask your AI Coach", { exact: true }).fill("What should I do next set?");
   await ui.getByRole("button", { name: "Send to AI Coach", exact: true }).click();
   await expect(ui.getByText("Sent to your ChatGPT coach.", { exact: false })).toBeVisible();
