@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "e2e",
-  testMatch: "training.spec.ts",
+  testMatch: ["training.spec.ts", "plugin.spec.ts"],
   use: { baseURL: "http://127.0.0.1:4175" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },

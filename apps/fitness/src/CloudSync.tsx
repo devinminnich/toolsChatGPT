@@ -166,13 +166,13 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
     finally { setBusy(false); }
   }
 
-  async function decide(approve: boolean) {
+  async function decide(approve: boolean, accessMode: "read" | "train" = "read") {
     if (!authId || !authDetails || !user) return;
     setBusy(true); setMessage("");
     try {
       if (approve) {
         const { error } = await cloud.from("fitness_coach_grants").upsert({
-          user_id: user.id, client_id: authDetails.client.id,
+          user_id: user.id, client_id: authDetails.client.id, access_mode: accessMode,
         });
         if (error) throw error;
       }
@@ -229,9 +229,9 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
           {authDetails && (
             <div className="coach-suggestion">
               <h3>Authorize {authDetails.client.name}</h3>
-              <p>This connection can read your completed workout results, including weights, reps, timed holds and difficulty. It cannot change workouts or access your renovation workspace.</p>
+              <p>Choose how this connection can use your Fitness Coach account. History access reads completed results. Workout app access also saves your profile, routines, active sessions and results, and lets ChatGPT send proposals for you to review. Neither option accesses your renovation workspace.</p>
               <p>Return destination: {authDetails.redirect_uri}</p>
-              <div className="row"><button className="primary" disabled={busy || !ownerMatches} onClick={() => void decide(true)}>Allow read-only coach access</button><button className="quiet" disabled={busy} onClick={() => void decide(false)}>Deny</button></div>
+              <div className="row"><button className="primary" disabled={busy || !ownerMatches} onClick={() => void decide(true, "train")}>Allow workout app & AI Coach</button><button className="quiet" disabled={busy || !ownerMatches} onClick={() => void decide(true)}>Allow read-only coach access</button><button className="quiet" disabled={busy} onClick={() => void decide(false)}>Deny</button></div>
             </div>
           )}
           <h3>Connect in ChatGPT</h3>

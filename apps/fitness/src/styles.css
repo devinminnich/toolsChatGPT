@@ -650,7 +650,7 @@ footer span {
   position: fixed;
   inset: 0;
   background: #000a;
-  z-index: 4;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1031,3 +1031,10 @@ button:hover:not(:disabled) {
 .cloud-sync[hidden] { display: none; }
 .cloud-sync { margin-bottom: 1rem; }
 .cloud-sync input[readonly] { font-size: .8rem; }
+.plugin-app .bottom-nav { grid-template-columns: repeat(5, 1fr); }
+.plugin-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.plugin-coach { margin-bottom: 20px; }
+.plugin-coach .coach-reply { white-space: pre-wrap; }
+.plugin-coach .row { flex-wrap: wrap; }
+.plugin-coach textarea { width: 100%; min-height: 90px; }
+.workout-dock .plugin-coach { max-height: 45vh; overflow: auto; margin-bottom: 0; }

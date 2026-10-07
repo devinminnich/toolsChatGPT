@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "fitness-coach": {
+      "type": "streamable-http",
+      "url": "https://rhiqlmgswblmbripzevd.supabase.co/functions/v1/fitness-coach/mcp"
+    }
+  }
+}

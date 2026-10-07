@@ -5,10 +5,12 @@ export function SessionCoach({
   session,
   profile,
   onChange,
+  embedded = false,
 }: {
   session: Session;
   profile: Profile;
   onChange: (fn: (s: Session) => Session) => void;
+  embedded?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [question, setQuestion] = useState(""),
@@ -33,7 +35,7 @@ export function SessionCoach({
           aria-expanded={open}
           aria-controls="coach-panel"
         >
-          {open ? "Close coach" : "Coach & chat"}
+          {open ? "Close coach" : embedded ? "Next-set guidance" : "Coach & chat"}
         </button>
         <span>
           {result
@@ -65,8 +67,9 @@ export function SessionCoach({
         >
           <h3>Your workout coach</h3>
           <p>
-            ChatGPT coaches you in our conversation. This app offers local
+            {embedded ? "Instant next-set suggestions use your logged difficulty. For personalized advice and workout plans, ask AI Coach." : <>ChatGPT coaches you in our conversation. This app offers local
             next-set suggestions and copies the context to bring there.
+            </>}
           </p>
           <label>
             Available weight increment ({session.unit})
@@ -118,7 +121,7 @@ export function SessionCoach({
               )}
             </div>
           )}
-          <label>
+          {!embedded && <><label>
             Question for your coach
             <textarea
               value={question}
@@ -158,6 +161,7 @@ export function SessionCoach({
               value={coachContext(session, profile, question)}
             />
           </details>
+          </>}
         </section>
       )}
     </div>

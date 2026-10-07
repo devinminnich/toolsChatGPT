@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/build-plugin.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "preview": "vite preview --host 0.0.0.0",
     "test:offline": "playwright test --config playwright.production.config.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.3",
     "@supabase/supabase-js": "2.117.2",
     "react": "19.1.1",
     "react-dom": "19.1.1",

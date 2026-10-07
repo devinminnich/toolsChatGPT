@@ -34,8 +34,11 @@ import {
   workoutToken,
 } from "./domain/importWorkout";
 import { load, save } from "./data/storage";
+import type { FitnessPlugin } from "./plugin/bridge";
+import { PluginCoach } from "./plugin/PluginCoach";
+import { validatePluginState } from "./domain/plugin";
 
-type Tab = "Today" | "Train" | "History" | "Settings";
+type Tab = "Today" | "Train" | "History" | "Settings" | "AI Coach";
 const defaultProfile: Profile = {
   name: "",
   goal: "General fitness",
@@ -49,8 +52,12 @@ const icons: Record<Tab, string> = {
   Train: "▥",
   History: "↗",
   Settings: "⚙",
+  "AI Coach": "✦",
 };
-export function App() {
+export function App({ plugin }: { plugin?: FitnessPlugin } = {}) {
+  const storage = plugin ?? { load, save };
+  const savedLabel = plugin ? "Saved to your account" : "Saved on this device";
+  const tabs = (Object.keys(icons) as Tab[]).filter((t) => plugin || t !== "AI Coach");
   const [state, setState] = useState<State>(emptyState);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
@@ -61,6 +68,15 @@ export function App() {
   const [editing, setEditingState] = useState<Workout>();
   const [detail, setDetail] = useState<Exercise>();
   const [custom, setCustom] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const confirmResolver = useRef<((value: boolean) => void) | undefined>(undefined);
+  function confirmAction(message: string): Promise<boolean> {
+    if (!plugin) return Promise.resolve(window.confirm(message));
+    return new Promise((resolve) => { confirmResolver.current = resolve; setConfirmText(message); });
+  }
+  function resolveConfirmation(value: boolean) {
+    confirmResolver.current?.(value); confirmResolver.current = undefined; setConfirmText("");
+  }
   const [query, setQuery] = useState("");
   const [muscle, setMuscle] = useState("");
   const [equipment, setEquipment] = useState("");
@@ -106,7 +122,7 @@ export function App() {
   latest.current = state;
   useEffect(() => {
     let alive = true;
-    load()
+    storage.load()
       .then(async (s) => {
         if (alive) {
           try {
@@ -119,7 +135,7 @@ export function App() {
               : importFromHash(s, location.hash, available);
             if (!alive) return;
             if (imported) {
-              await save(imported.next);
+              await storage.save(imported.next);
               if (!alive) return;
               setNotice(imported.notice);
               s = imported.next;
@@ -141,13 +157,13 @@ export function App() {
           setState(s);
           setEditingState(s.draft);
           setReady(true);
-          setStatus("Saved on this device");
+          setStatus(savedLabel);
         }
       })
       .catch((e) => {
         if (alive)
           setError(
-            `Could not open saved data: ${e.message}. Enable browser storage, then reload.`,
+            `Could not open saved data: ${e.message}. ${plugin ? "Check your plugin connection and workout access, then reload." : "Enable browser storage, then reload."}`,
           );
       });
     return () => {
@@ -184,9 +200,10 @@ export function App() {
     return () => clearInterval(timer);
   }, []);
   useEffect(() => {
-    if (!detail && !custom) return;
+    if (!detail && !custom && !confirmText) return;
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (confirmText) resolveConfirmation(false);
         setDetail(undefined);
         setCustom(false);
       }
@@ -209,17 +226,19 @@ export function App() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [detail, custom]);
+  }, [detail, custom, confirmText]);
   function update(next: State) {
+    let succeeded = false;
     latest.current = next;
     setState(next);
     setStatus("Saving…");
     queue.current = queue.current
       .catch(() => {})
-      .then(() => save(next))
+      .then(() => storage.save(next))
       .then(() => {
+        succeeded = true;
         if (latest.current === next) {
-          setStatus("Saved on this device");
+          setStatus(savedLabel);
           setError("");
         }
       })
@@ -229,6 +248,7 @@ export function App() {
           `Saving failed: ${e.message}. Keep this window open and retry.`,
         );
       });
+    return queue.current.then(() => succeeded);
   }
   function setEditing(
     action: Workout | undefined | ((w: Workout | undefined) => Workout),
@@ -258,11 +278,11 @@ export function App() {
     const current = latest.current;
     if (current.active) update({ ...current, active: fn(current.active) });
   }
-  function removeWorkout(workout: Workout) {
+  async function removeWorkout(workout: Workout) {
     if (
-      !window.confirm(
+      !(await confirmAction(
         `Delete "${workout.name}" from saved workouts? Your workout history will be kept. Any saved in-progress sets will also be kept in History.`,
-      )
+      ))
     )
       return;
     update(deleteWorkout(latest.current, workout.id));
@@ -293,12 +313,12 @@ export function App() {
       setError((e as Error).message);
     }
   }
-  function finish() {
+  async function finish() {
     if (!session) return;
     if (
-      !window.confirm(
+      !(await confirmAction(
         "Finish this workout? Uncompleted sets will remain unlogged.",
-      )
+      ))
     )
       return;
     update({
@@ -335,7 +355,7 @@ export function App() {
       </main>
     );
   return (
-    <div className="app">
+    <div className={plugin ? "app plugin-app" : "app"}>
       <aside className="sidebar">
         <a
           className="brand"
@@ -352,7 +372,7 @@ export function App() {
         </a>
         <p className="sidebar-caption">YOUR TRAINING SPACE</p>
         <nav>
-          {(Object.keys(icons) as Tab[]).map((t) => (
+          {tabs.map((t) => (
             <button
               key={t}
               className={tab === t ? "nav active" : "nav"}
@@ -368,7 +388,7 @@ export function App() {
         <div className="sidebar-foot">
           <span className="pill">TRAINING PREVIEW</span>
           <p>Built around your next set.</p>
-          <small>Private history sync and read-only ChatGPT coaching.</small>
+          <small>{plugin ? "Your workouts. Your ChatGPT coach." : "Private history sync and read-only ChatGPT coaching."}</small>
         </div>
       </aside>
       <main ref={mainRef}>
@@ -391,7 +411,7 @@ export function App() {
                   ? "Build your next session."
                   : tab === "History"
                     ? "Every session counts."
-                    : "Make it yours."}
+                    : tab === "AI Coach" ? "Train with your AI Coach." : "Make it yours."}
             </h1>
           </div>
           <span className="save-status" role="status">
@@ -412,10 +432,12 @@ export function App() {
             </button>
           </div>
         )}
-        <CloudSync state={state} saveReady={status === "Saved on this device"} visible={tab === "Settings"} onChange={(fn) => {
+        {!plugin && <CloudSync state={state} saveReady={status === savedLabel} visible={tab === "Settings"} onChange={(fn) => {
           const next = fn(latest.current);
           if (next !== latest.current) update(next);
-        }} />
+        }} />}
+        {plugin && <div className="plugin-toolbar"><span>Connected to your Fitness Coach account</span><button className="quiet" onClick={() => plugin.expand().catch((e) => setError(e.message))}>Expand workout app</button></div>}
+        {plugin && tab === "AI Coach" && <PluginCoach state={state} runtime={plugin} saved={status === savedLabel} onChange={update} />}
         {!state.profile ? (
           <section className="panel onboarding">
             <span className="eyebrow">START WITH YOU</span>
@@ -426,6 +448,7 @@ export function App() {
             </p>
             <ProfileForm
               initial={defaultProfile}
+              coaching={Boolean(plugin)}
               onSave={(profile) => update({ ...state, profile })}
               submit="Start training"
             />
@@ -571,7 +594,9 @@ export function App() {
                         session={session}
                         profile={state.profile}
                         onChange={mutateSession}
+                        embedded={!!plugin}
                       />
+                      {plugin && <PluginCoach compact state={state} runtime={plugin} saved={status === savedLabel} onChange={update} />}
                     </div>
                     <div className="workout-grid">
                       {session.exercises.map((exercise, ei) => (
@@ -940,9 +965,9 @@ export function App() {
                       <h2>Workout builder</h2>
                       <button
                         className="quiet"
-                        onClick={() => {
+                        onClick={async () => {
                           if (
-                            window.confirm(
+                            await confirmAction(
                               "Close builder? Unsaved changes will be discarded.",
                             )
                           )
@@ -1277,18 +1302,19 @@ export function App() {
                   <h2>Training preferences</h2>
                   <ProfileForm
                     initial={state.profile}
+                    coaching={Boolean(plugin)}
                     onSave={(profile) => update({ ...state, profile })}
                     submit="Save preferences"
                   />
                 </section>
                 <section className="panel">
                   <span className="eyebrow">YOUR DATA</span>
-                  <h2>Saved on this device.</h2>
-                  <p>
+                  <h2>{plugin ? "Saved to your account." : "Saved on this device."}</h2>
+                  {plugin ? <p>Your preferences, workouts, active session and results save to your private Fitness Coach account. Completed results are also available to your authorized coach. Changes from another open view are protected; reload if a save reports a conflict.</p> : <p>
                     Workouts save in this browser first. Enable cloud sync above
                     to back up completed results and share them with your coach.
                     Routines and in-progress sessions remain on this device.
-                  </p>
+                  </p>}
                   <form
                     onSubmit={(event) => {
                       event.preventDefault();
@@ -1332,24 +1358,38 @@ export function App() {
                   <button className="quiet" onClick={exportData}>
                     Export backup
                   </button>
+                  {plugin && <label>Bring workouts from your existing app backup
+                    <input type="file" accept="application/json,.json" onChange={async (event) => {
+                      const file = event.target.files?.[0]; event.target.value = "";
+                      if (!file) return;
+                      try {
+                        if (file.size > 1400000) throw new Error("This backup is too large.");
+                        const imported: unknown = JSON.parse(await file.text()); validatePluginState(imported);
+                        const current = latest.current;
+                        const merge = <T extends { id: string }>(left: T[], right: T[]) => [...left, ...right.filter((item) => !left.some((existing) => existing.id === item.id))];
+                        const next = { ...current, profile: current.profile ?? imported.profile, custom: merge(current.custom, imported.custom), workouts: merge(current.workouts, imported.workouts), history: merge(current.history, imported.history).sort((a, b) => a.startedAt - b.startedAt), active: current.active ?? imported.active, readySessions: merge(current.readySessions ?? [], imported.readySessions ?? []) };
+                        if (await update(next)) setNotice("Backup imported. Existing account workouts and results were preserved.");
+                      } catch (error) { setError((error as Error).message); }
+                    }} />
+                  </label>}
                   <hr />
-                  <h3>Coach is on the way.</h3>
-                  <p>
+                  <h3>{plugin ? "Your AI Coach is connected." : "Coach is on the way."}</h3>
+                  {plugin ? <p>Open AI Coach to ask ChatGPT for a workout, progress review, or set adjustment. Review suggestions before applying them. ChatGPT replies when you ask; local timers continue independently.</p> : <p>
                     Involvement and autonomy preferences are saved for the
                     upcoming Coach milestone. They do not currently adjust your
                     workouts.
-                  </p>
+                  </p>}
                 </section>
               </div>
             )}
           </>
         )}
         <footer>
-          FITNESS COACH <span>Training foundation · Device storage</span>
+          FITNESS COACH <span>{plugin ? "ChatGPT coaching · Private account storage" : "Training foundation · Device storage"}</span>
         </footer>
       </main>
       <nav className="bottom-nav">
-        {(Object.keys(icons) as Tab[]).map((t) => (
+        {tabs.map((t) => (
           <button
             key={t}
             className={tab === t ? "active" : ""}
@@ -1362,6 +1402,12 @@ export function App() {
           </button>
         ))}
       </nav>
+      {confirmText && <div className="overlay" onClick={() => resolveConfirmation(false)}>
+        <section className="modal panel" role="dialog" aria-modal="true" aria-label="Confirm workout action" onClick={(e) => e.stopPropagation()}>
+          <h2>Confirm action</h2><p>{confirmText}</p>
+          <div className="row"><button className="quiet" autoFocus onClick={() => resolveConfirmation(false)}>Cancel</button><button className="primary" onClick={() => resolveConfirmation(true)}>Confirm</button></div>
+        </section>
+      </div>}
       {detail && (
         <div className="overlay" onClick={() => setDetail(undefined)}>
           <section
@@ -1552,8 +1598,10 @@ function ProfileForm({
   initial,
   onSave,
   submit,
+  coaching = false,
 }: {
   initial: Profile;
+  coaching?: boolean;
   onSave: (p: Profile) => void;
   submit: string;
 }) {
@@ -1632,7 +1680,7 @@ function ProfileForm({
         </div>
       </fieldset>
       <label>
-        Coach involvement (upcoming)
+        {coaching ? "Coach involvement" : "Coach involvement (upcoming)"}
         <select
           value={profile.involvement}
           onChange={(e) =>
@@ -1644,7 +1692,7 @@ function ProfileForm({
           ))}
         </select>
       </label>
-      <label>
+      {coaching ? <p className="muted">AI Coach suggests changes for you to review and apply.</p> : <label>
         Coach autonomy (upcoming)
         <select
           value={profile.autonomy}
@@ -1653,7 +1701,7 @@ function ProfileForm({
           <option>Suggest only</option>
           <option>Adapt within limits</option>
         </select>
-      </label>
+      </label>}
       <button className="primary" type="submit">
         {submit}
       </button>
@@ -1741,4 +1789,3 @@ function CustomForm({ onSave }: { onSave: (e: Exercise) => void }) {
     </form>
   );
 }
-
