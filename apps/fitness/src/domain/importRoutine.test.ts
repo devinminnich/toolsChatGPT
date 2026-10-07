@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vitest";
 import plan from "../../public/workouts/shoulders-biceps-2026-10-05.json";
+import backPlan from "../../public/workouts/back-legs-abs-2026-10-07.json";
 import { catalog } from "./catalog";
 import { emptyState, startSession } from "./model";
 import { encodeWorkoutImport } from "./importWorkout";
@@ -114,5 +115,24 @@ it("loads only validated local plan paths and reports unavailable plans", async 
     ).rejects.toThrow("could not be opened");
   } finally {
     vi.unstubAllGlobals();
+  }
+});
+
+it("preserves the back, legs and abs plan's loads, timed holds and notes in a session", () => {
+  const state = importRoutine(emptyState(), backPlan, catalog);
+  const session = startSession(state.workouts[0], catalog, "lb");
+  expect(session.exercises.map((e) => e.sets.length)).toEqual([3, 3, 3, 3, 3, 2, 2, 2]);
+  expect(session.exercises[3].sets.map((s) => s.weight)).toEqual([210, 210, 210]);
+  expect(session.exercises[4].sets[0].weight).toBe(105);
+  expect(session.exercises[5].sets[0].weight).toBe(70);
+  expect(session.exercises[7].sets[0]).toMatchObject({duration: 30, targetRange: {min: 30, max: 45}});
+  expect(session.exercises[3].notes).toBe(backPlan.exercises[3].notes);
+  expect(state.history).toHaveLength(0);
+  expect(importRoutine(state, backPlan, catalog)).toBe(state);
+});
+
+it("rejects non-text and oversized exercise notes", () => {
+  for (const notes of [12, "x".repeat(2001)]) {
+    expect(() => importRoutine(emptyState(), {...backPlan, exercises: [{...backPlan.exercises[0], notes}]}, catalog)).toThrow("Invalid exercise notes");
   }
 });

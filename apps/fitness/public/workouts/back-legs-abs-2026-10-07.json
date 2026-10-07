@@ -1,0 +1,191 @@
+{
+  "v": 2,
+  "id": "devin-back-legs-abs-2026-10-07",
+  "date": "2026-10-07",
+  "name": "Back + Legs + Abs",
+  "unit": "lb",
+  "exercises": [
+    {
+      "exerciseId": "lat-pulldown",
+      "rest": 90,
+      "notes": "Start conservatively on set 1. Report weight, reps and difficulty so we can dial in the remaining sets.",
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 12
+        }
+      ]
+    },
+    {
+      "exerciseId": "seated-cable-row",
+      "rest": 90,
+      "notes": "Controlled stretch forward, then pull toward your lower ribs.",
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 12
+        }
+      ]
+    },
+    {
+      "exerciseId": "dumbbell-romanian-deadlift",
+      "rest": 90,
+      "notes": "Hip-hinge work without heavy conventional deadlifts yet. Choose a conservative starting weight; enter dumbbell load per hand.",
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 10
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 10
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 8,
+          "max": 10
+        }
+      ]
+    },
+    {
+      "exerciseId": "seated-leg-press",
+      "rest": 90,
+      "notes": "Last time: 210 lb × 12 with more available. If set 1 is comfortable, increase the next set.",
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 210,
+          "min": 10,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 210,
+          "min": 10,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 210,
+          "min": 10,
+          "max": 12
+        }
+      ]
+    },
+    {
+      "exerciseId": "seated-leg-curl",
+      "rest": 90,
+      "notes": "Start 105–110 lb (preset to 105 lb). Last time: 110 lb × 10, then 110 lb × 8.",
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 105,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 105,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 105,
+          "min": 8,
+          "max": 12
+        }
+      ]
+    },
+    {
+      "exerciseId": "leg-extension",
+      "rest": 60,
+      "notes": "Last time: 80 lb × 8, 80 lb × 7, 70 lb × 9. Aim for cleaner reps rather than hitting failure.",
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 70,
+          "min": 8,
+          "max": 12
+        },
+        {
+          "type": "Working",
+          "weight": 70,
+          "min": 8,
+          "max": 12
+        }
+      ]
+    },
+    {
+      "exerciseId": "cable-crunch",
+      "rest": 45,
+      "notes": "Abs block: about 5 minutes with plank. Choose a controlled working weight.",
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 10,
+          "max": 15
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 10,
+          "max": 15
+        }
+      ]
+    },
+    {
+      "exerciseId": "plank",
+      "rest": 45,
+      "notes": "Hold 30–45 seconds per set.",
+      "sets": [
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 30,
+          "max": 45
+        },
+        {
+          "type": "Working",
+          "weight": 0,
+          "min": 30,
+          "max": 45
+        }
+      ]
+    }
+  ]
+}

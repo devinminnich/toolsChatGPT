@@ -22,6 +22,7 @@ export type DetailedRoutineImport = Omit<RoutineImport, "v" | "exercises"> & {
   v: 2;
   exercises: {
     exerciseId: string;
+    notes?: string;
     rest: number;
     sets: {
       type: PlannedSet["type"];
@@ -61,6 +62,7 @@ export function importRoutine(
     unit: p.unit,
     scheduledFor: p.date,
     exercises: p.exercises.map((item, i) => {
+      let notes: string | undefined;
       let exerciseId: string,
         rest = 90;
       let targets: DetailedRoutineImport["exercises"][number]["sets"];
@@ -82,6 +84,11 @@ export function importRoutine(
           throw new Error("Invalid exercise target.");
         const detailed = item as DetailedRoutineImport["exercises"][number];
         exerciseId = detailed.exerciseId;
+        if (detailed.notes !== undefined) {
+          if (typeof detailed.notes !== "string" || detailed.notes.length > 2000)
+            throw new Error("Invalid exercise notes.");
+          notes = detailed.notes.trim();
+        }
         rest = detailed.rest;
         targets = detailed.sets;
         if (
@@ -100,6 +107,7 @@ export function importRoutine(
       return {
         id: `${p.id}-exercise-${i}`,
         exerciseId,
+        notes,
         rest,
         sets: targets.map((target, n) => {
           if (
@@ -185,3 +193,4 @@ export async function importSharedPlan(
         : "Routine saved. Review your weights before starting.",
   };
 }
+

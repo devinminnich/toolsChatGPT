@@ -596,6 +596,7 @@ export function App() {
                               i
                             </button>
                           </div>
+                          {exercise.notes && <p>{exercise.notes}</p>}
                           {exercise.sets.map((set, si) => {
                             const previous = previousSet(
                               state.history,
@@ -1735,3 +1736,4 @@ function CustomForm({ onSave }: { onSave: (e: Exercise) => void }) {
     </form>
   );
 }
+

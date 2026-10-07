@@ -16,6 +16,7 @@ export type Exercise = {
 export type Prescription = {
   id: string;
   exerciseId: string;
+  notes?: string;
   rest: number;
   sets: PlannedSet[];
 };
@@ -64,6 +65,7 @@ export type Session = {
   exercises: {
     id: string;
     exercise: Exercise;
+    notes?: string;
     rest: number;
     sets: SetRecord[];
   }[];
@@ -141,6 +143,7 @@ export function startSession(
         id: p.id,
         exercise: structuredClone(exercise),
         rest: p.rest,
+        notes: p.notes,
         sets: p.sets.map((set) => ({
           ...structuredClone(set),
           id: id(),
@@ -375,6 +378,7 @@ export function returnToWorkouts(state: State): State {
     exercises: session.exercises.map((e) => ({
       id: e.id,
       exerciseId: e.exercise.id,
+      notes: e.notes,
       rest: e.rest,
       sets: e.sets.map(({ completedAt, difficulty, skipped, ...set }) => set),
     })),
@@ -438,3 +442,4 @@ export function deleteWorkout(
       : state.history,
   };
 }
+
