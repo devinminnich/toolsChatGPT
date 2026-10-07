@@ -3,7 +3,7 @@ import { cloudKey, cloudUrl } from "./cloudConfig";
 import type { Session } from "../domain/model";
 
 export const cloud = createClient(cloudUrl, cloudKey, {
-  auth: { storageKey: "fitness-cloud-auth", detectSessionInUrl: false },
+  auth: { storageKey: "fitness-cloud-auth", detectSessionInUrl: true },
 });
 
 export function completedHistory(history: Session[]): Session[] {

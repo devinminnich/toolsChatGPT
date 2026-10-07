@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import type { State } from "./domain/model";
 import { cloud, completedHistory, mergeHistory, syncHistory } from "./data/cloud";
 import { coachServerUrl } from "./data/cloudConfig";
+import { recoveryCredentials } from "./data/recovery";
 
 type AuthorizationDetails = Extract<
   NonNullable<Awaited<ReturnType<typeof cloud.auth.oauth.getAuthorizationDetails>>["data"]>,
@@ -15,6 +16,10 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [recovery, setRecovery] = useState(() => new URLSearchParams(location.hash.slice(1)).get("type") === "recovery" || sessionStorage.getItem("fitness-password-recovery") === "1");
+  const [resetLink, setResetLink] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [syncStatus, setSyncStatus] = useState("Sign in to sync completed workouts.");
   const [busy, setBusy] = useState(false);
@@ -33,15 +38,31 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
 
   useEffect(() => {
     let alive = true;
-    cloud.auth.getSession().then(({ data }) => { if (alive) setUser(data.session?.user ?? null); });
-    const { data } = cloud.auth.onAuthStateChange((_event, session) => {
+    cloud.auth.getSession().then(({ data, error }) => {
+      if (!alive) return;
+      setUser(data.session?.user ?? null);
+      if (error || (!data.session && sessionStorage.getItem("fitness-password-recovery") === "1")) {
+        setRecovery(false); setResetOpen(true);
+        sessionStorage.removeItem("fitness-password-recovery");
+        setMessage(error?.message ?? "Your reset session expired. Request a new reset email below.");
+      }
+    });
+    const { data } = cloud.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === "PASSWORD_RECOVERY") {
+        setRecovery(true);
+        sessionStorage.setItem("fitness-password-recovery", "1");
+      }
+      if (event === "SIGNED_OUT") {
+        setRecovery(false);
+        sessionStorage.removeItem("fitness-password-recovery");
+      }
     });
     return () => { alive = false; data.subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || recovery) return;
     let alive = true;
     cloud.from("fitness_coach_grants").select("client_id", { count: "exact" })
       .then(({ count }) => { if (alive) setGrantCount(count ?? 0); });
@@ -53,7 +74,7 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
       else window.location.assign(data.redirect_url);
     });
     return () => { alive = false; };
-  }, [user?.id, authId, attempt]);
+  }, [user?.id, authId, attempt, recovery]);
 
   useEffect(() => {
     const retry = () => setAttempt((n) => n + 1);
@@ -69,7 +90,7 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
   }, []);
 
   useEffect(() => {
-    if (!user || !state.cloudSyncEnabled || !ownerMatches || !saveReady) return;
+    if (!user || recovery || !state.cloudSyncEnabled || !ownerMatches || !saveReady) return;
     let alive = true;
     const timer = window.setTimeout(async () => {
       if (running.current) return;
@@ -92,7 +113,45 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
       }
     }, 800);
     return () => { alive = false; window.clearTimeout(timer); };
-  }, [user?.id, state.history, state.cloudSyncEnabled, ownerMatches, saveReady, attempt]);
+  }, [user?.id, state.history, state.cloudSyncEnabled, ownerMatches, saveReady, attempt, recovery]);
+
+  async function sendReset() {
+    setBusy(true); setMessage("");
+    try {
+      const { error } = await cloud.auth.resetPasswordForEmail(email.trim(), { redirectTo: location.origin + location.pathname });
+      if (error) throw error;
+      setMessage("Password reset requested. Check your email. You can copy the reset link and paste it below without opening it.");
+    } catch (error) { setMessage((error as Error).message); }
+    finally { setBusy(false); }
+  }
+
+  async function openResetLink() {
+    setBusy(true); setMessage("");
+    try {
+      const credentials = recoveryCredentials(resetLink);
+      setRecovery(true);
+      const result = credentials.kind === "hash"
+        ? await cloud.auth.verifyOtp({ token_hash: credentials.token_hash, type: "recovery" })
+        : await cloud.auth.setSession({ access_token: credentials.access_token, refresh_token: credentials.refresh_token });
+      if (result.error) throw result.error;
+      sessionStorage.setItem("fitness-password-recovery", "1");
+      setResetLink(""); setPassword(""); setConfirmPassword("");
+    } catch (error) { setRecovery(false); setMessage((error as Error).message); }
+    finally { setBusy(false); }
+  }
+
+  async function savePassword() {
+    if (password !== confirmPassword) { setMessage("The passwords do not match."); return; }
+    setBusy(true); setMessage("");
+    try {
+      const { error } = await cloud.auth.updateUser({ password });
+      if (error) throw error;
+      setPassword(""); setConfirmPassword(""); setRecovery(false); setResetOpen(false);
+      sessionStorage.removeItem("fitness-password-recovery");
+      setMessage("Password updated. You are signed in.");
+    } catch (error) { setMessage((error as Error).message); }
+    finally { setBusy(false); }
+  }
 
   async function signIn(create: boolean) {
     setBusy(true); setMessage("");
@@ -127,17 +186,25 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
   }
 
   return (
-    <section className="panel cloud-sync" hidden={!visible && !authId} aria-label="Cloud sync and coach connection">
+    <section className="panel cloud-sync" hidden={!visible && !authId && !recovery} aria-label="Cloud sync and coach connection">
       <span className="eyebrow">PRIVATE WORKOUT HISTORY</span>
       <h2>{authId ? "Connect your workout coach" : "Cloud sync & ChatGPT coach"}</h2>
       <p>Sync completed workout results across your devices and let your ChatGPT coach read them. Saved routines and in-progress sessions stay on this device.</p>
-      {!user ? (
+      {recovery ? (
+        <form onSubmit={(event) => { event.preventDefault(); void savePassword(); }}>
+          <h3>Choose a new password</h3>
+          <label>New password<input type="password" autoComplete="new-password" minLength={6} required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          <label>Confirm new password<input type="password" autoComplete="new-password" minLength={6} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} /></label>
+          <button className="primary" disabled={busy || !user} type="submit">Save new password</button>
+        </form>
+      ) : !user ? (
         <form onSubmit={(event) => { event.preventDefault(); void signIn(false); }}>
           <label>Email<input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
           <label>Password<input type="password" autoComplete="current-password" minLength={6} required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
           <div className="row">
             <button className="primary" type="submit" disabled={busy}>Sign in</button>
             <button type="button" className="quiet" disabled={busy || !email || password.length < 6} onClick={() => void signIn(true)}>Create account</button>
+            <button type="button" className="quiet" disabled={busy} onClick={() => { setResetOpen(true); setMessage(""); }}>Forgot password</button>
           </div>
           <p>Use your Fitness Coach account. Your Supabase dashboard login is a separate account.</p>
         </form>
@@ -185,6 +252,18 @@ export function CloudSync({ state, visible, saveReady, onChange }: {
           }}>Revoke all coach access</button>}
         </>
       )}
+      {resetOpen && !recovery && <div>
+        <h3>Reset your password</h3>
+        <form onSubmit={(event) => { event.preventDefault(); void sendReset(); }}>
+          <label>Reset email<input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+          <button className="quiet" type="submit" disabled={busy}>Send reset email</button>
+        </form>
+        <p>On iPhone, press and hold the Reset password link in your email and choose Copy Link. Paste it here. If you already opened it and saw localhost, copy the full Safari address instead.</p>
+        <form onSubmit={(event) => { event.preventDefault(); void openResetLink(); }}>
+          <label>Password reset link<input type="password" autoComplete="off" required value={resetLink} onChange={(e) => setResetLink(e.target.value)} /></label>
+          <button className="primary" type="submit" disabled={busy}>Continue to new password</button>
+        </form>
+      </div>}
       {message && <p role="status">{message}</p>}
     </section>
   );

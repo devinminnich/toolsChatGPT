@@ -1,5 +1,23 @@
 import { expect, test } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+test("password reset works without entering the forgotten password and rejects unrelated links", async ({ page }) => {
+  let resetRequested = false;
+  await page.route("**/auth/v1/recover*", async (route) => {
+    resetRequested = route.request().postDataJSON().email === "reset@example.com";
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Settings/ }).click();
+  await page.getByRole("button", { name: "Forgot password", exact: true }).click();
+  await page.getByLabel("Reset email", { exact: true }).fill("reset@example.com");
+  await page.getByRole("button", { name: "Send reset email", exact: true }).click();
+  await expect(page.getByText("Password reset requested.", { exact: false })).toBeVisible();
+  expect(resetRequested).toBe(true);
+  await page.getByLabel("Password reset link", { exact: true }).fill("https://example.com/?token=invalid");
+  await page.getByRole("button", { name: "Continue to new password", exact: true }).click();
+  await expect(page.getByText("Paste the password reset link from your email", { exact: false })).toBeVisible();
+  await expect(page.getByLabel("New password", { exact: true })).toHaveCount(0);
+});
 test("short shoulder workout link saves preset weights and warm-ups once and survives reload", async ({
   page,
 }) => {
